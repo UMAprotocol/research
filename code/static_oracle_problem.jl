@@ -193,5 +193,6 @@ p = Params(9, 1.0, Normal(0, 0.5), 0.65, 0.65)
 
 πX = find_πX(p, γ, γtilde)
 
-out = optimize_γtilde_1(p, γ)
+out = optimize_γtilde_1(p, γ)  # Use COBYLA
+out = optimize_γtilde(p, γ)  # Use Langrangian w Nelder-Mead
 =#
