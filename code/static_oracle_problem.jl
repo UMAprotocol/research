@@ -12,8 +12,8 @@ struct Params{D<:Distribution}
     K::Int
 
     # Parameters for distribution
-    μ_i::Float64
-    i::D
+    μ_l::Float64
+    l_dist::D
 
     # Malevolent/Oracle parameters
     ξm::Float64
@@ -21,141 +21,148 @@ struct Params{D<:Distribution}
 end
 
 
-function voter_payoffs(ap::Params, x, Z, i, ε, εtilde)
+function voter_payoffs(ap::Params, x, X, l, γ, γtilde)
     @unpack K = ap
 
-    p_prime = ifelse(Z > round(Int, K/2), 0.0, 1.0)
-    tt_bonus = ifelse(x==1, i, 0.0)
+    p_prime = ifelse(X > round(Int, K/2), 0.0, 1.0)
 
-    return p_prime*ε[Z+1, x+1] + εtilde[Z+1, x+1] + tt_bonus
+    # Value of telling truth γ[X, x]
+    truth_value = p_prime*γ[X+1, x+1]
+
+    # Value of lying γtilde[X] (bc γtilde(x=S) = 0 and S is known)
+    lie_value = γtilde[X+1] - l
+
+    return x*truth_value + (1 - x)*lie_value
 end
 
 
-function find_xstar(ap::Params, i, ε, εtilde, π)
+function find_xstar(ap::Params, l, γ, γtilde, π)
 
     @unpack K = ap
 
     # Set x0/x1 to 0
     x0, x1 = (0.0, 0.0)
-    for z in 0:K
-        x0 += voter_payoffs(ap, 0, z, i, ε, εtilde) * π[z+1]
-        x1 += voter_payoffs(ap, 1, z, i, ε, εtilde) * π[z+1]
+    for X in 0:K
+        x0 += voter_payoffs(ap, 0, X, l, γ, γtilde) * π[X+1]
+        x1 += voter_payoffs(ap, 1, X, l, γ, γtilde) * π[X+1]
     end
 
-    return ifelse(x0 > x1, (0, x0), (1, x1))
+    return ifelse(x0 > x1, 0, 1)
 end
 
 
-function find_πz(ap::Params, ε, εtilde, nSamples=10_000)
-    @unpack K, μ_i, i = ap
+function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
+    @unpack K, μ_l, l_dist = ap
 
     π_0 = ones(K+1) ./ (K+1)
     π_update = Array{Float64}(undef, K+1)
 
     dist, iter = 1.0, 0
-    while dist > 1e-3
+    while (dist > 1e-2) & (iter < 1e2)
         iter += 1
 
-        z_count = zeros(Int, K+1)
+        X_count = zeros(Int, K+1)
         Random.seed!(42)
         for nsample in 1:nSamples
             n_x0, n_x1 = 0, 0
 
-            i_vals = μ_i .+ rand(i, K)
-            for _i in i_vals
+            l_vals = μ_l .+ rand(l_dist, K)
+            for _l in l_vals
 
                 # If telling truth, increment truth
                 # TODO: Can read ibar from formulas... Maybe can compute this
                 #       faster
-                if find_xstar(ap, _i, ε, εtilde, π_0)[1] == 1
+                if find_xstar(ap, _l, γ, γtilde, π_0) == 1
                     n_x1 += 1
                 else
                     n_x0 += 1
                 end
             end
-            z_count[n_x0+1] += 1
+            X_count[n_x0+1] += 1
         end
 
-        π_update = z_count ./ nSamples
+        π_update = X_count ./ nSamples
         dist = maximum(abs, π_update - π_0)
-        copyto!(π_0, π_update)
-
-        if mod(iter, 5) == 0
-            println("$iter Iterations and $dist Distance")
-            println("$(π_update[1:10])")
-        end
+        copyto!(π_0, 0.25 .* π_update + 0.75 .* π_0)
 
     end
+    println("Took $iter iterations and ended with $dist distance")
+    @show π_update
 
     return π_update
 end
 
 
-function malevolent_cost(p::Params, ε, εtilde)
+function malevolent_cost(p::Params, γ, γtilde)
     # Unpack parameters
-    @unpack μ_i, i, K, ξm = p
+    @unpack μ_l, l_dist, K, ξm = p
 
     # Given new εtilde, determine distribution of z
-    πz = find_πz(p, ε, εtilde)
+    πX = find_πX(p, γ, γtilde)
 
     E_cost = 0.0
-    for z in 0:K
-        E_cost += z * εtilde[z+1, 0+1] * πz[z+1]
+    for X in 0:K
+        E_cost += X * γtilde[X+1] * πX[X+1]
     end
 
     return E_cost
 end
 
 
-function lie_constraint(p::Params, ε, εtilde)
+function lie_constraint(p::Params, γ, γtilde)
     @unpack K, ξm = p
 
-    # Compute the pmf and cmf for Zs
-    πz = find_πz(p, ε, εtilde)
-    Fz = cumsum(πz)
+    # Compute the pmf and cmf for Xs
+    πX = find_πX(p, γ, γtilde)
+    FX = cumsum(πX)
 
     # Figure out where to evaluate cmf and return
     # (1 - F(1/2)) > ξm  <-- Lie constraint
-    return ξm - (1 - Fz[ceil(Int, K/2) + 1])
+    return ξm - (1 - FX[ceil(Int, K/2) + 1])
 end
 
 
-function optimize_εtilde(p::Params, ε)
+function optimize_γtilde(p::Params, γ)
 
     # Set up optimization
-    opt = Opt(:LN_COBYLA, p.K + 1)
+    opt = Opt(:LN_AUGLAG, p.K + 1)
 
-    let p=p, ε=ε
+    let p=p, γ=γ
 
-        function myobj(εtilde::Vector, grad::Vector)
-            εtildeM = hcat(εtilde, zeros(size(εtilde)))
-            return malevolent_cost(p, ε, εtildeM)
+        function myobj(γtilde::Vector, grad::Vector)
+            @show γtilde
+            return malevolent_cost(p, γ, γtilde)
         end
 
-        function mycons(εtilde::Vector, grad::Vector)
-            εtildeM = hcat(εtilde, zeros(size(εtilde)))
-            return lie_constraint(p, ε, εtildeM)
+        function mycons(γtilde::Vector, grad::Vector)
+            return lie_constraint(p, γ, γtilde)
         end
 
+        opt2 = Opt(:LN_NELDERMEAD, p.K+1)
+        xtol_abs!(opt2, 1e-4)
 
         lower_bounds!(opt, zeros(p.K + 1))
         min_objective!(opt, myobj)
         inequality_constraint!(opt, mycons, 1e-8)
+        xtol_abs!(opt, 1e-4)
+
+        local_optimizer!(opt, opt2)
+
     end
 
-    minf, minx, ret = optimize(opt, zeros(p.K + 1))
+    minf, minx, ret = optimize(opt, ones(p.K + 1))
 
     return opt, minf, minx, ret
 end
 
 
 #=
-ε = ones(101, 2)
-εtilde = zeros(101, 2)
-εtilde[1, :] = ones(101)
+p = Params(15, 1.0, Normal(0, 0.5), 0.75, 0.85)
 
-p = Params(100, 1.0, Normal(0, 0.5), 0.75, 0.85)
+γ = ones(p.K+1, 2)
+γtilde = ones(p.K+1)
 
-πz = find_πz(p, ε, εtilde)
+πX = find_πX(p, γ, γtilde)
 
+out = optimize_γtilde(p, γ)
 =#
