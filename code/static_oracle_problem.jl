@@ -58,7 +58,7 @@ function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
     π_update = Array{Float64}(undef, K+1)
 
     dist, iter = 1.0, 0
-    while (dist > 1e-2) & (iter < 1e2)
+    while (dist > 1e-3) & (iter < 1e2)
         iter += 1
 
         X_count = zeros(Int, K+1)
@@ -83,7 +83,9 @@ function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
 
         π_update = X_count ./ nSamples
         dist = maximum(abs, π_update - π_0)
-        copyto!(π_0, 0.25 .* π_update + 0.75 .* π_0)
+
+        δ = 0.35
+        copyto!(π_0, δ .* π_update + (1 - δ) .* π_0)
 
     end
     println("Took $iter iterations and ended with $dist distance")
@@ -122,6 +124,33 @@ function lie_constraint(p::Params, γ, γtilde)
 end
 
 
+function optimize_γtilde_1(p::Params, γ)
+
+    # Set up optimization
+    opt = Opt(:LN_COBYLA, p.K+1)
+
+    let p=p, γ=γ
+
+        function myobj(γtilde::Vector, grad::Vector)
+            @show γtilde
+            return malevolent_cost(p, γ, γtilde)
+        end
+
+        function mycons(γtilde::Vector, grad::Vector)
+            return lie_constraint(p, γ, γtilde)
+        end
+        xtol_abs!(opt, 1e-4)
+        lower_bounds!(opt, zeros(p.K + 1))
+        min_objective!(opt, myobj)
+        inequality_constraint!(opt, mycons, 1e-8)
+    end
+
+    minf, minx, ret = optimize(opt, 2 .* rand(p.K + 1) .+ ones(p.K + 1))
+
+    return opt, minf, minx, ret
+end
+
+
 function optimize_γtilde(p::Params, γ)
 
     # Set up optimization
@@ -157,12 +186,12 @@ end
 
 
 #=
-p = Params(15, 1.0, Normal(0, 0.5), 0.75, 0.85)
+p = Params(9, 1.0, Normal(0, 0.5), 0.65, 0.65)
 
 γ = ones(p.K+1, 2)
 γtilde = ones(p.K+1)
 
 πX = find_πX(p, γ, γtilde)
 
-out = optimize_γtilde(p, γ)
+out = optimize_γtilde_1(p, γ)
 =#
