@@ -1,6 +1,7 @@
 #=
 See notes for description of environment
 =#
+using Base.Cartesian
 using Distributions
 using LinearAlgebra
 using NLopt
@@ -16,6 +17,8 @@ struct Params{D<:Distribution}
     l_dist::D
 
     # Malevolent/Oracle parameters
+    T::Float64  # Tax revenue
+    r::Float64  # Interest rate
     ξm::Float64
     ξo::Float64
 end
@@ -24,10 +27,11 @@ end
 function voter_payoffs(ap::Params, x, X, l, γ, γtilde)
     @unpack K = ap
 
-    p_prime = ifelse(X > round(Int, K/2), 0.0, 1.0)
+    dividend = ap.T / ap.K
+    p_prime = ifelse(X > round(Int, K/2), 0.0, (1.0 + ap.r)/ap.r * dividend)
 
     # Value of telling truth γ[X, x]
-    truth_value = p_prime*γ[X+1, x+1]
+    truth_value = (p_prime + dividend)*γ[X+1, x+1]
 
     # Value of lying γtilde[X] (bc γtilde(x=S) = 0 and S is known)
     lie_value = γtilde[X+1] - l
@@ -185,13 +189,55 @@ function optimize_γtilde(p::Params, γ)
 end
 
 
+function optimize_γtilde_bff(p::Params, γ)
+
+    # Start with wide bounds but make adjacent elements the same
+    nvals = 4
+    γtilde_vals = range(0.0, stop=4.0, length=nvals)
+
+    γtilde = zeros(p.K+1)
+    γtilde_star = copy(γtilde)
+    cost_star = 1e5
+
+    # Instead of search over all γtilde_vals -- Only look at ones adjacent to
+    # the other values... This drastically limits what we need to search and
+    # adds a degree of continuity
+    @nloops 6 i d->1:nvals begin
+        # Determine all of the indices
+        indices = @ntuple 6 i
+
+        @nexprs 3 j-> γtilde[2*(j-1) + 1] = γtilde_vals[indices[j]]
+        @nexprs 3 j-> γtilde[2*j] = γtilde_vals[indices[j]]
+
+        # Feasible
+        if lie_constraint(p, γ, γtilde) < 0
+            cost = malevolent_cost(p, γ, γtilde)
+            if cost < cost_star
+                cost_star = cost
+                copyto!(γtilde_star, γtilde)
+            end
+        end
+    end
+
+    return γtilde_star
+end
+
+
 #=
-p = Params(9, 1.0, Normal(0, 0.5), 0.65, 0.65)
+p = Params(9, 1.0, Normal(0, 0.5), 0.05, 0.025, 0.65, 0.65)
 
 γ = ones(p.K+1, 2)
 γtilde = ones(p.K+1)
 
 πX = find_πX(p, γ, γtilde)
+dG_dγtilde = Array{Float64}(undef, 10, 10)
+for i in 1:10
+    ε = zeros(10)
+    ε[i] = 0.01
+    ΔG = find_πX(p, γ, γtilde + ε)
+    dG_dγtilde[:, i] = (ΔG - πX) / 0.01
+end
+
 
 out = optimize_γtilde_1(p, γ)  # Use COBYLA
 out = optimize_γtilde(p, γ)  # Use Langrangian w Nelder-Mead

@@ -3,11 +3,14 @@
   % Get right packages
   \usepackage{amsmath}
   \usepackage{amssymb}
+  \usepackage{amsthm}
   \usepackage{fullpage} % Package to use full page
   \usepackage{hyperref}
   \usepackage{parskip} % Package to tweak paragraph skipping
-  \DeclareMathOperator*{\argmax}{argmax}
 
+  % User commands
+  \newtheorem{thm}{Theorem}
+  \DeclareMathOperator*{\argmax}{argmax}
 
   % Title info
   \title{Oracle-Agent Problem}
@@ -50,42 +53,55 @@
   There is a random state of the world $S \in \{0, 1\}$. There are three types of agents:
 
   \begin{enumerate}
-    \item The oracle: Responsible for reporting $\hat{S}$. The oracle wants to choose $\hat{S} = S$.
+    \item The oracle: Responsible for reporting $\hat{S}$. The oracle wants to choose $\hat{S} = S$
+    but cannot observe $S$.
     \item The malevolent: Can observe $S$ and receives $mN$ if the oracle reports $\hat{S} = 1 - S$.
     \item The individuals: Can observe $S$ and are incentivized by the oracle and the malevolent
     into voting $x = \{0, 1\}$.
   \end{enumerate}
 
-  Agents choose whether to truthfully report the state. A truthful report entails $x = S$ and
-  untruthful report is $x = 1 - S$. In order to participate in the vote, agents must purchase the
-  right to vote at price $p$. In order to entice truthful reporting, the oracle is allowed to make
-  payments to the agents, $\varepsilon(x, X)$ where $x$ is the agent's vote and $X$ number of people
-  who voted $x_i = 0$. This payment is in terms of \textit{rights to vote for tomorrow} which are
-  valued at $p' = \begin{cases} p \quad \text{if } \hat{S} = S \\ 0 \quad \text{else}\end{cases}$.
-  The malevolent is also allowed to make payments to the agents, $\tilde{\varepsilon}(x, X, S)$, but
-  can condition on the agent's vote, the number of votes for 0, AND the state.
+  There are $K$ agents who decide whether to truthfully report the state to the Oracle\dots A truthful
+  report entails $x = S$ and an untruthful report is $x = 1 - S$. Agents vary in their aversion to
+  lying which is measured by $l \sim F$.
+
+  The Oracle's goal is to report the true state of world $\hat{S} = S$ in spite of the fact that it
+  is, to the Oracle, unobservable. The Oracle does this by offering to pay the agents who vote
+  $\gamma(x, X)$ where $x$ is an individual agent's vote and $X$ is the number of agents who vote
+  $x=0$\footnote{ We could have also chosen $x=1$; as soon as we know how many people vote 0 (1)
+  then we know how many people voted 1 (0).}. After receiving the votes made by the agents, the
+  Oracle reports whichever option received the majority vote. The payments to the voters are
+  denominated in \textit{rights to vote for tomorrow} and are also claims to a percentage of the tax
+  revenue. The \textit{rights to vote for tomorrow} are valued at
+  $p' = \sum_{t=1}^\infty \left(\frac{1}{1+r} \right)^t \frac{T}{K}$
+  if the Oracle reports the truth and 0 otherwise.
+
+  There is also a malevolent agent who is allowed to make payments to the agents,
+  $\tilde{\gamma}(x, X, S)$, but the malevolent can also condition their payments on $S$.
 
   Agents report to maximize:
 
-  $$V(x) = \max_{x \in \{0, 1\}} p' \varepsilon(x, X) + \tilde{\varepsilon}(x, X, S)$$
+  $$V(x, X, S, l) = \max_{x \in \{0, 1\}} (p' + \frac{T}{K}) \gamma(x, X) + \tilde{\gamma}(x, X, S) - \mathcal{I}_{x \neq S} l$$
 
-  The malevolent would like to corrupt the system as cheaply as possible. The cost at which the
+  Thus, given $\gamma$ and $\tilde{\gamma}$, we can compute an implied distribution over $X$ values.
+  Let this distribution be called $G$.
+
+  The malevolent would like to corrupt the system\footnote{Here, corrupt means to raise the
+  probability of corruption above a threshold $\xi_m$} as cheaply as possible. The cost at which the
   malevolent can corrupt the system is given by
 
   \begin{align*}
-    C^M(S, \varepsilon(x, X)) &= \min_{\tilde{\varepsilon}(x, X, S)} \int_i \varepsilon(x_i, X, S) \\
+    C^M(\gamma(x, X), S) &= \min_{\tilde{\gamma}(x, X, S)} \sum_{X} g(X) \sum_{l} f(l) \tilde{\gamma}(x_l, X, S) \\
     &\text{subject to} \\
-    &V(1 - S) > V(S) \quad \text{(Lie Compatiblity)}
+    &1 - G(K/2) > \xi_m
   \end{align*}
 
   The oracle would like to report the truth at the minimum cost. It's problem is given by
 
   \begin{align*}
-    V^O &= \min_{\varepsilon(x, X)} \int_i \varepsilon(x_i, X) di \\
+    V^O &= \min_{\gamma(x, X)} \sum_X g(X) \sum_l f(l) \gamma(x_l, X) \\
     &\text{subject to } \\
-    &p' \int_i \varepsilon(x_i, X) di \leq T + \int_{i \in \text{Voters}} p di \quad \text{(Budget Constraint)} \\
-    &V(S) \geq V(1 - S) \quad \text{(Incentive Compatible)} \\
-    &C^M(S) \geq mN \quad \text{Malevolent Incompatible}
+    &\sum_l \gamma(x_l, X) \leq K \quad \text{(Budget Constraint)} \\
+    &C^M(S, \gamma(x, X)) \geq mN \quad \text{Malevolent Incompatible}
   \end{align*}
 
   The Malevolent Incompatible constraint is what ensures that the oracle chooses a payment scheme
@@ -94,18 +110,38 @@
 
 \section{Game Plan}
 
-  The game plan is to solve for a discretized version of $\varepsilon(x, X)$ and determine the the
-  corresponding $C^M(S, \varepsilon(x, X))$. With these in hand, we can likely pick a function that
-  approximates $\varepsilon(x, X)$ ``well enough'' which mostly means that it doesn't require too
+  The game plan is to solve for a discretized version of $\gamma(x, X)$ and determine the the
+  corresponding $C^M(S, \gamma(x, X))$. With these in hand, we can likely pick a function that
+  approximates $\gamma(x, X)$ ``well enough'' which mostly means that it doesn't require too
   much taxation on the trading system and that it satisfies the constraints of the oracle's problem.
 
   Once we have a solution to the static problem, we will move onto the dynamic problem. This will
   allow for $p'$ to be an endogenous object. The dynamic problem will also give the oracle more
   tools, such as positive reputation, to encourage truthful reporting. The malevolent agent does not
   have access to dynamic incentives because upon success the system shuts down. This should mean
-  that the static results are the most expensive solution to the truthful oracle problem...
+  that the static results are still a solution to the truthful oracle problem (albeit an expensive
+  one)...
 
-  
+
+\section{Progress}
+
+  \begin{thm}
+    $\gamma(x, Y) = \gamma(1 - x, K - Y)$
+  \end{thm}
+
+  \begin{thm}
+    $\tilde{\gamma}(1 - S, X, S) = 0$
+  \end{thm}
+
+  \begin{thm}
+    $\tilde{\gamma}(0, X, 1) = \tilde{\gamma}(1, K-X, 0)$
+  \end{thm}
+
+  \begin{thm}
+    $\exists \bar{l}$ such that $\forall l > \bar{l}$ $x^*(l) = S$ and $\forall l < \bar{l}$ $x^*(l) = 1-S$
+  \end{thm}
+
+
 \section{Appendix A}
 
   To generate the assumption of $T = 2 \tau N$ and an amount of seizable margin of $mN$ we assume:
