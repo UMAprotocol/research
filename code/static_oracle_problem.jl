@@ -55,8 +55,8 @@ function find_xstar(ap::Params, l, γ, γtilde, π)
 end
 
 
-function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
-    @unpack K, μ_l, l_dist = ap
+function find_πX(p::Params, γ, γtilde, nSamples=10_000)
+    @unpack K, μ_l, l_dist = p
 
     π_0 = ones(K+1) ./ (K+1)
     π_update = Array{Float64}(undef, K+1)
@@ -76,7 +76,7 @@ function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
                 # If telling truth, increment truth
                 # TODO: Can read ibar from formulas... Maybe can compute this
                 #       faster
-                if find_xstar(ap, _l, γ, γtilde, π_0) == 1
+                if find_xstar(p, _l, γ, γtilde, π_0) == 1
                     n_x1 += 1
                 else
                     n_x0 += 1
@@ -92,7 +92,7 @@ function find_πX(ap::Params, γ, γtilde, nSamples=10_000)
         copyto!(π_0, δ .* π_update + (1 - δ) .* π_0)
 
     end
-    println("Took $iter iterations and ended with $dist distance")
+    # println("Took $iter iterations and ended with $dist distance")
     @show π_update
 
     return π_update
@@ -124,7 +124,7 @@ function lie_constraint(p::Params, γ, γtilde)
 
     # Figure out where to evaluate cmf and return
     # (1 - F(1/2)) > ξm  <-- Lie constraint
-    return ξm - (1 - FX[ceil(Int, K/2) + 1])
+    return ξm - (1 - FX[ceil(Int, K/2)])
 end
 
 
@@ -192,8 +192,8 @@ end
 function optimize_γtilde_bff(p::Params, γ)
 
     # Start with wide bounds but make adjacent elements the same
-    nvals = 4
-    γtilde_vals = range(0.0, stop=4.0, length=nvals)
+    nvals = 7
+    γtilde_vals = range(0.0, stop=3.0, length=nvals)
 
     γtilde = zeros(p.K+1)
     γtilde_star = copy(γtilde)
@@ -202,12 +202,15 @@ function optimize_γtilde_bff(p::Params, γ)
     # Instead of search over all γtilde_vals -- Only look at ones adjacent to
     # the other values... This drastically limits what we need to search and
     # adds a degree of continuity
-    @nloops 6 i d->1:nvals begin
+    @nloops 6 i d -> d==6 ? range(1, stop=nvals, step=1) : range(max(1, i_{d+1}-1), stop=min(nvals, i_{d+1}+1), step=1)  begin
         # Determine all of the indices
-        indices = @ntuple 6 i
+        indices_raw = @ntuple 6 i
+        indices = indices_raw[end:-1:1]
+        @show indices
 
-        @nexprs 3 j-> γtilde[2*(j-1) + 1] = γtilde_vals[indices[j]]
-        @nexprs 3 j-> γtilde[2*j] = γtilde_vals[indices[j]]
+        @nexprs 6 j -> γtilde[j] = γtilde_vals[indices[j]]
+        # @nexprs 3 j-> γtilde[2*(j-1) + 1] = γtilde_vals[indices[j]]
+        # @nexprs 3 j-> γtilde[2*j] = γtilde_vals[indices[j]]
 
         # Feasible
         if lie_constraint(p, γ, γtilde) < 0
@@ -223,11 +226,42 @@ function optimize_γtilde_bff(p::Params, γ)
 end
 
 
-#=
-p = Params(9, 1.0, Normal(0, 0.5), 0.05, 0.025, 0.65, 0.65)
+function optimize_γtilde_la(p::Params, γ)
 
-γ = ones(p.K+1, 2)
-γtilde = ones(p.K+1)
+    # Allocate memory
+    lhs = zeros(p.K + 1)
+    rhs = zeros(p.K + 1, p.K + 1)
+
+    # Fill in lhs and rhs
+    for iX in 1:(p.K+1)
+        lhs[iX] = voter_payoffs(p, 1, iX - 1, 0.0, γ, γtilde)
+        rhs[iX] = voter_payoffs(p, 0, iX - 1, 0.0, γ, γtilde)
+    end
+
+end
+
+#=
+p = Params(5, 1.0, Normal(0, 0.5), 0.05, 0.025, 0.65, 0.65)
+
+# Simple gamma -- No redistribution
+γ_nr = ones(p.K+1, 2)
+γtilde_star_nr = optimize_γtilde_bff(p, γ_nr)
+
+# Extreme gamma -- Complete redistribution
+γ_r = zeros(p.K+1, 2)
+for iX in 1:(p.K+1)
+    X = iX - 1
+    γ_r[iX, 1] = ifelse(X < ceil(p.K/2), 0.0, p.K / X)
+    γ_r[iX, 2] = ifelse(X < ceil(p.K/2), p.K / (p.K - X), 0.0)
+end
+γtilde_star_r = optimize_γtilde_bff(p, γ_r)
+
+# middle ground gamma
+γ_mg = 0.5 * γ_nr + 0.5 * γ_r
+γtilde_star_r = optimize_γtilde_bff(p, γ_mg)
+
+
+
 
 πX = find_πX(p, γ, γtilde)
 dG_dγtilde = Array{Float64}(undef, 10, 10)
