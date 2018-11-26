@@ -125,22 +125,70 @@
 
 \section{Progress}
 
-  \begin{thm}
-    $\gamma(x, Y) = \gamma(1 - x, K - Y)$
-  \end{thm}
+  \subsection{Given an Oracle Policy}
 
-  \begin{thm}
-    $\tilde{\gamma}(1 - S, X, S) = 0$
-  \end{thm}
+    Imagine that we take as given an oracle policy. We will consider two potential policies:
 
-  \begin{thm}
-    $\tilde{\gamma}(0, X, 1) = \tilde{\gamma}(1, K-X, 0)$
-  \end{thm}
+    \begin{enumerate}
+      \item No redistribution: $\gamma(x, X) = 1 \forall x, X$
+      \item Complete redistribtion: $\gamma(x, X) = \begin{cases}
+      \frac{K}{X} \quad \text{if } X < \frac{K}{2} \text{ and } x = 0 \\
+      \frac{K}{K - X} \quad \text{if } X \geq \frac{K}{2} \text{ and } x = 1 \\
+      0 \quad \text{else} \end{cases}$
+    \end{enumerate}
 
-  \begin{thm}
-    $\exists \bar{l}$ such that $\forall l > \bar{l}$ $x^*(l) = S$ and $\forall l < \bar{l}$ $x^*(l) = 1-S$
-  \end{thm}
+    With these two policies in hand, we can determine what the optimal corruption policy of the
+    malevolent agent is. Using this corruption policy, we can do ``back of the envelope'' type
+    calculations that allow us to back out the required tax rate to prevent corruption.
 
+    Using a discretized version of the model with the following parameters:
+
+    \begin{itemize}
+      \item $K=5$
+      \item $l \sim N(1, 0.5)$
+      \item $T = 0.05$
+      \item $r = 0.025$
+      \item $\xi_m = 0.65$
+    \end{itemize}
+
+    The cost of attacking is
+
+    \begin{itemize}
+      \item No redistribution: $3.40$
+      \item Full redistribution: $3.55$
+    \end{itemize}
+
+    Imagine that we associate the ``profit from corruption'' to \$1,000 and play with some of the
+    other parameters then:
+
+    \begin{center}
+    \begin{tabular}{l|ccc}
+      & Model & Example w $CoC = PfC + \varepsilon$ & Example with $\tau = 5\%$ \\
+      \hline \\
+      CoC & 3.55 & \$1,000 &  \$2,000 \\
+      PfC & (?) & \$1,000 & \$1,000 \\
+      T & 0.05 & \$14.05 & \$100 \\
+      $\tau$ & (?) & 0.7\% & 5\% \\
+    \end{tabular}
+    \end{center}
+
+  \subsection{Theorems}
+
+    \begin{thm}
+      $\gamma(x, Y) = \gamma(1 - x, K - Y)$
+    \end{thm}
+
+    \begin{thm}
+      $\tilde{\gamma}(1 - S, X, S) = 0$
+    \end{thm}
+
+    \begin{thm}
+      $\tilde{\gamma}(0, X, 1) = \tilde{\gamma}(1, K-X, 0)$
+    \end{thm}
+
+    \begin{thm}
+      $\exists \bar{l}$ such that $\forall l > \bar{l}$ $x^*(l) = S$ and $\forall l < \bar{l}$ $x^*(l) = 1-S$
+    \end{thm}
 
 \section{Appendix A}
 

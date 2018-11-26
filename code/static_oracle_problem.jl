@@ -8,6 +8,7 @@ using NLopt
 using Parameters
 using Random
 
+p = Params(5, 1.0, Normal(0, 0.5), 0.05, 0.025, 0.65, 0.65)
 struct Params{D<:Distribution}
     # Number of voters
     K::Int
@@ -256,11 +257,12 @@ for iX in 1:(p.K+1)
 end
 γtilde_star_r = optimize_γtilde_bff(p, γ_r)
 
+# Back of envelope calculations
+
+
 # middle ground gamma
 γ_mg = 0.5 * γ_nr + 0.5 * γ_r
 γtilde_star_r = optimize_γtilde_bff(p, γ_mg)
-
-
 
 
 πX = find_πX(p, γ, γtilde)
