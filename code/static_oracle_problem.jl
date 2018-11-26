@@ -8,7 +8,6 @@ using NLopt
 using Parameters
 using Random
 
-p = Params(5, 1.0, Normal(0, 0.5), 0.05, 0.025, 0.65, 0.65)
 struct Params{D<:Distribution}
     # Number of voters
     K::Int

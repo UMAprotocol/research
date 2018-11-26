@@ -144,22 +144,33 @@
     Using a discretized version of the model with the following parameters:
 
     \begin{itemize}
-      \item $K=5$
-      \item $l \sim N(1, 0.5)$
-      \item $T = 0.05$
-      \item $r = 0.025$
-      \item $\xi_m = 0.65$
+      \item Number of voters: $K=5$
+      \item Lie penalty distribution: $l \sim N(1, 0.5)$
+      \item Total tax revenue: $T = 0.05$
+      \item Interest rate: $r = 0.025$
+      \item Probability of attack success: $\xi_m = 0.65$
     \end{itemize}
 
-    The cost of attacking is
+    The cost of attacking with the given policies and parameters is
 
     \begin{itemize}
       \item No redistribution: $3.40$
       \item Full redistribution: $3.55$
     \end{itemize}
 
-    Imagine that we associate the ``profit from corruption'' to \$1,000 and play with some of the
-    other parameters then:
+    Now consider letting the dollar amount of the profit from corruption ($mn$) be set to \$1,000
+    for the complete redistribution policy. In the table below, we do the following thought
+    experiments:
+
+    \begin{enumerate}
+      \item In $CoC = PfC + \varepsilon$, we set the cost of corruption (CoC) to the same value
+      as the profit from corruption (PfC). We can then convert the total tax revenue into a dollar
+      amount using the model-example exchange rate and use the identity $T = 2 \tau \text{PfC}$ to
+      find the tax rate that achieves the PfC desired.
+      \item In $\tau = 5\%$, we set the tax rate on the margin to $5\%$. We can then use the
+      same identity as in last example but to find the total tax revenue. This gives us a
+      model-example exchange rate which then tells us what the cost of corruption would be.
+    \end{enumerate}
 
     \begin{center}
     \begin{tabular}{l|ccc}
