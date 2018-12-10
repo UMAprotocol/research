@@ -95,3 +95,7 @@ images/*.jpg
 # Plotly
 *.html
 
+data/
+*.csv
+*.pyc
+cryptocompare_apikey.json
