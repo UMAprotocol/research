@@ -14,8 +14,8 @@
 
   % Title info
   \title{Portfolio Choice Problem}
-  \author{}
-  \date{10/22/2018}
+  \author{UMA Project}
+  \date{\today}
 
 \begin{document}
 
@@ -24,97 +24,82 @@
 
 \section{General Model}
 
-\subsection{Individuals}
-
-  Individuals purchase and sell vote tokens, $c$, and risk-free bonds with return $r$, $b$. They are
-  risk-averse and have preferences over their wealth levels. They always attempt to vote truthfully,
-  but may not do so for two reasons (1) forgetting to vote (non-participation) and (2) make a
-  mistake when they try to vote (trembling hand). The probability with which they forget to vote is
-  constant and given by probability $\eta$. The probability with which they make a mistake is
-  distributed according to a beta distribution with parameters $\alpha, \beta$.
-
-  An individual entering a period with $b_t$ bonds and $c_t$ coins faces the following problem:
-
-  \begin{align}
-    V(b_t, c_t, x_t) &= \max_{b_{t+1}, c_{t+1}} u(w_t) + \beta E_x \left[ V(b_{t+1}, c_{t+1}, x) \right] \\
-    w_t &= (1 + r) b_t + c_t (1 + \gamma(x_t, X)) (d_t + p_t) - b_{t+1} - p_{t} c_{t+1}
-  \end{align}
-
-
-\subsection{Malevolent}
-
-  The malevolent can also purchase and sell vote tokens. However, they may attempt to vote
-  dishonestly if it is in their interest. The Malevolent is risk-neutral and attempts to maximize
-  wealth.
-
-  {\color{red} TODO: What happens if we just force the malevolent to always like? Does this prevent
-  certain attacks, for example, buying early in life of asset and not corrupting until later? I
-  think this would still be unprofitable because if they couldn't purchase and corrupt in that
-  period then they'd be better off selling the coins than corrupting system}
 
 \subsection{Oracle}
 
-  The Oracle issues totaly supply 1 of the vote token. The Oracle wants to ensure that the true
-  state is reported correctly. This is difficult because the Oracle has no way to observe what the
-  state is, so it uses the votes of vote token holders to announce the state; if more than $\xi$
-  percent of the vote tokens are used to cast a vote for a state then the Oracle announces that
-  state. It rewards those who vote according to the payoff function $\gamma(x, \hat{S})$ which maps an
-  individual's vote, $x$, and the predicted state, $\hat{S}$ to a new value between (0, 2).
+  The Oracle issues totaly supply 1 of the vote token and desires some state $S_t \in \{0, 1\}$ to
+  be reported correctly. The Oracle does not know the true value of $S_t$ but believes that
+  $S_t = 1$ with probability $p_0 \geq 0.5$. The Oracle then uses votes by individuals as signals
+  about the true state and will report $0$ if enough voters report $s = 0$\footnote{Enough is
+  determined by treating the Oracle as a Bayesian decision maker. It reports $\hat{S} = 0$ if
+  $\text{Prob}(S_t = 0) > 0.5$}.
+
+  The Oracle then punishes those who vote with the minority by taking a fraction $\gamma$ of their
+  vote coins and rewards those who voted with majority by giving them $(1 - \gamma) \frac{\pi}{1 -
+  \pi}$ vote coins where $\pi$ is the fraction who voted the minority vote.
+
+  The Oracle is responsible for protecting $\mu_t$ margin in some system and generates revenue
+  $\Pi_t = \tau_t(\mu_t) \mu_t$. $\mu_t$ follow some stochastic process. The Oracle pays the revenue
+  out as dividends to vote token holders.
 
 
-\subsection{Equilibrium}
+\subsection{Individuals}
 
-  An equilibrium is:
+  There are two types of individuals who are identical in every dimension except for one: the
+  \textit{truth-tellers} always report the truth ($s_t = 1$) and \textit{liars} always report a lie
+  ($s_t = 0$). Both types of individuals buy and sell vote tokens, $c$, and risk-free bonds, $b$,
+  with return $r$. They are both risk-averse and gain utility from consumption. Individuals
+  sometimes make mistakes when voting by either (1) forgetting to vote (non-participation) or (2)
+  making a mistake when they vote (trembling hand). The probability with which they forget to vote
+  is a constant probability and is given by $\eta$, whereas, the probability with which individuals
+  make a mistake is random (but shared across all individuals in a given period!) and distributed
+  according to the beta distribution with parameters $\alpha$ and $\beta$.
+
+  Truth-tellers and liars both form representative families where they share risk perfectly across
+  individuals.
+
+  A truth-teller entering a period where Oracle protects $\mu_t$ margin and where the truth-teller
+  has wealth $w_t$ faces the following problem:
+
+  \begin{align}
+    V(w_t, \mu_t) &= \max_{b_{t+1}, c_{t+1}} u(w_t) + \beta E_x \left[ V(w_{t+1}, \mu_{t+1}) \right] \\
+    w_{t+1} &= (1 + r) b_{t+1} + c_{t+1} (1 + \gamma(x_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_t))
+  \end{align}
+
+  Additionally, liars have a stake in the margin that is protected by the Oracle. In particular, if
+  the liars can corrupt the Oracle, aka $\hat{S}_t = 0$, then they collect $\kappa \mu_t$
+  as an additional payoff where $\kappa \leq \frac{1}{2}$.\footnote{$\kappa$ represents the portion
+  of the margin that can be seized if liars successfully corrupt the Oracle.} Thus, a liar entering
+  a period with wealth $w_t$ when the Oracle protects $\mu_t$ margin faces the following problem:
+
+  \begin{align}
+    \tilde{V}(w_t, \mu_t) &= \max_{b_{t+1}, c_{t+1}} u(w_t) + \beta E_x \left[ \tilde{V}(w_{t+1}, \mu_{t+1}) \right] \\
+    w_{t+1} &= (1 + r) b_{t+1} + c_{t+1} (1 + \gamma(x_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_{t+1})) + \mathcal{I}_{\tilde{S}_t = 0} \kappa \mu_{t+1}
+  \end{align}
+
+
+\subsection{Truthful Oracle}
+
+  A \textit{Truthful Oracle} is an Oracle policy $(\gamma, \tau_t(\mu_t)$ such that $\hat{S}_t = 1$. This is done
+  by ensuring that the truth-tellers value the token more than the liars do.
+
+  A \textit{Truthful Equilibrium} is
 
   \begin{enumerate}
-    \item Value function $V : B \times C \times X \rightarrow \mathcal{R}$ for individuals
-    \item Policy functions $b^*, c^* : B \times C \times X \rightarrow \mathcal{R}^{+}$
-    \item Value function $\tilde{V} : B \times C \rightarrow \mathcal{R}$ for malevolent
-    \item Policy functions $\tilde{b}^*, \tilde{c}^* : B \times C \rightarrow \mathcal{R}^{+}$ and $\tilde{x}^* : B \times C \rightarrow X$
-    \item Oracle dividend function $d : M \rightarrow \mathcal{R}^{+}$
-    \item Oracle redistribution function $\gamma : \{0, 1\} \times X \rightarrow [0, 2]$
-    \item Oracle tax function $\tau : M \rightarrow [0, 1]$
-    \item Prices $p$
+    \item Value functions $V, \tilde{V}: \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}$
+    \item Policy functions $b^*, c^*, \tilde{b}^*, \tilde{c}^*: \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}^{+}$
+    \item Prices $p_t : \mu \times \{0, 1\} \rightarrow \mathcal{R}^{+}$
+    \item Oracle dividend function $d_t \rightarrow \mathcal{R}^{+} \rightarrow \mathcal{R}^+$
+    \item Oracle redistribution policy: $\gamma \in (0, 1)$
   \end{enumerate}
 
   such that
 
-  \begin{enumerate}
-    \item Policy functions are optimal given value functions for both individuals and malevolent
-    \item Prices clear the coins market -- $\sum_i c^*(b, c, x) = 1$
-    \item Oracle redistribution keeps number of outstanding coins constant, $\pi \gamma(0, X) + (1 - \pi) \gamma(1, X) = 1$
-    \item Malevolent finds it optimal to not attack
-  \end{enumerate}
-
-2. For small voters (their vote will not be pivotal with any significant probability) I agree there
-is no need to solve a profit maximization problem to determine their vote. They can just vote what
-they think is true, but maybe make mistakes (a parameter in the model will control the probability
-of truthfully making mistakes). If the mistake probability is independent across voters and
-symmetric (false positives and false negatives) then this all washes out in a law of large numbers
-sense, but the mistakes may be correlated (some votes may actually be difficult to figure out what
-the truth is). I would try to write the model generally, and then focus on a special case when doing
-analysis in the early days, instead of starting with the special case directly. As is the general
-theme right now, it seems good to have parameters that exogenously determine interesting things,
-like probability of voter participation, which can then later be made endogenous. For large voters
-(people who own lots of tokens), it may not be a good idea to make voting mechanical, and you may
-want to consider profit maximization. This depends on what the market will ultimately look
-like...lots of small token holders or a few big ones. Different market should be modeled
-differently; I don't know what Hart envisions on this front.
-
-3. Definitely like the malevolent purchasing tokens and acting strategically.
-
-4. I agree no need to do mechanism design for now. Focus on a small set of tools/decision rules the
-oracle can use for now.
-
-5. I am not sure how difficult it is to endogenize the price of the tokens in the new or old model
-under the assumption of risk neutrality of token owners and fixed supply of tokens (that are
-perfectly divisible). Maybe you would need an outside risky rate of return for no arbitrage, but I'm
-not sure that is needed, probably just a discount rate. I would assume perfect foresight for macro
-variables (growth of the size of the margin in the system) and then you would need a voting rule for
-each token holder and a probability of payoff for each event (non-vote, vote 1  and vote 1 wins,
-vote 1 and vote 0 wins, vote 0 and vote 1 wins, vote 0 and vote 0 wins). Maybe the event space can
-be collapsed to vote the winning vote or vote the losing vote, not sure. I'm not saying it is easy,
-but I would like to see the equations that would determine the endogenous token price, even if it is
-hard to solve that version of the model.
+  \begin{itemize}
+    \item Value functions and policy functions are optimal given prices
+    \item $\tilde{c}^* = 0$
+    \item The Oracle is truthful
+    \item Prices clear markets
+  \end{itemize}
 
 \end{document}

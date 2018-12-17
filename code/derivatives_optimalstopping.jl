@@ -15,7 +15,7 @@ end
 function Deriv_OptStop(
     ;β=0.99, c=0.01, d_tilde=0.10, m_lb=0.20,
     mgrid=range(0.0, stop=10*m_lb, length=500),
-    n_ε=10, prob_decay=4, pos_mult
+    n_ε=10, prob_decay=4, pos_mult=1.5
     )
 
     foo = collect(range(0.0, stop=1.0, length=n_ε)).^prob_decay
