@@ -14,9 +14,11 @@ struct PortfolioChoiceModel{AU<:AbstractUtility,T}
     β::Float64  # Discount factor
     u::AU  # Utility function
 
-    # Risk-free parameters
+    # Asset parameters
     r::Float64  # Risk-free interest rate
     ybar::Float64  # Period by period income
+    nodes::Vector{Float64}  # Integration nodes for wealth shocks
+    weights::Vector{Float64}  # Integration weights for wealth shocks
 
     # Voting parameters
     η::Float64  # Forgetful
@@ -37,13 +39,27 @@ end
 
 # One model unit is ~$10,000 --> ybar ~ $2,500 per week, μ -> $1,000,000 margin
 function PortfolioChoiceModel(;
-        β=0.999, u=LogUtility(), r=0.0005, ybar=0.25, η=0.30, π=0.05, κ=0.40,
-        α=2.5, xbar=1.0, μ=100.0, τ=0.001, γ=0.025, nw=250, wmin=1e-8, wmax=10.0
+        β=0.999, u=LogUtility(), r=0.0005, ybar=0.25, σ=0.1, η=0.30, π=0.05,
+        κ=0.40, α=2.5, xbar=1.0, μ=100.0, τ=0.001, γ=0.025, nw=250, wmin=1e-8,
+        wmax=12.5
     )
 
+    nodes, weights = qnwnorm(13, 0.0, σ^2)
     logw_grid = range(log(wmin), stop=log(wmax), length=nw)
 
-    return PortfolioChoiceModel(β, u, r, ybar, η, π, κ, α, xbar, μ, τ, γ, logw_grid)
+    return PortfolioChoiceModel(β, u, r, ybar, nodes, weights, η, π, κ, α, xbar, μ, τ, γ, logw_grid)
+end
+
+
+function compute_EV(m, V_itp, wealth)
+    cont = 0.0
+
+    for (n, w) in zip(m.nodes, m.weights)
+        after_shock_wealth = max(1e-8, wealth + n)
+        cont += w*V_itp(log(after_shock_wealth))
+    end
+
+    return cont
 end
 
 
@@ -73,8 +89,15 @@ function solve_postcorruption(m::PortfolioChoiceModel)
             wt = exp(logw_grid[iw]) + ybar
 
             let β=β, u=u, r=r, iw=iw, wt=wt, V_itp=V_itp, bstar=bstar, V_upd=V_upd
-                objective(log_btp1) =
-                    -(u(wt - exp(log_btp1)) + β*V_itp(log(1.0 + r) + log_btp1))
+
+                function objective(log_btp1)
+                    btp1 = exp(log_btp1)
+                    flow = u(wt - btp1)
+                    wtp1 = (1 + r) * btp1
+                    cont = compute_EV(m, V_itp, wtp1)
+
+                    return -(flow + β*cont)
+                end
                 sol = optimize(objective, -25.0, log(wt-1e-5))
 
                 bstar[iw] = exp(sol.minimizer)
@@ -111,9 +134,6 @@ function solve_given_price(m::PortfolioChoiceModel, q, V_aut)
     # Allocate memory for truth-teller value functions
     V = copy(V_aut)
     V_upd = copy(V)
-
-    # Grids to search over discrete asset choices
-    max_w = exp.(collect(logw_grid[end])) + ybar
 
     # Allocate memory for policy functions and prices
     bstar = fill(-1.0, nw)
@@ -157,12 +177,11 @@ function solve_given_price(m::PortfolioChoiceModel, q, V_aut)
                 # If tells truth and doesn't forget to vote then may make mistake
                 wtp1_truth_nomistake = (1 + r)*btp1 + (1 + γ*(π / (1 - π)))*xtp1*(τ*μ + q)
                 wtp1_truth_mistake = (1 + r)*btp1 + (1 - γ)*xtp1*(τ*μ + q)
-
                 value_truth = u(ct) + β*(
-                    η*V_itp(log(wtp1_truth_forget)) +  # Forget
+                    η*compute_EV(m, V_itp, wtp1_truth_forget) +  # Forget
                     (1 - η) * (  # Don't forget
-                        π*V_itp(log(wtp1_truth_mistake)) +  # Mistake
-                        (1 - π)*V_itp(log(wtp1_truth_nomistake))  # No mistake
+                        π*compute_EV(m, V_itp, wtp1_truth_mistake) +  # Mistake
+                        (1 - π)*compute_EV(m, V_itp, wtp1_truth_nomistake)  # No mistake
                     )
                 )
 
@@ -172,8 +191,8 @@ function solve_given_price(m::PortfolioChoiceModel, q, V_aut)
                     (1 - vulnerable)*((1 - γ)*xtp1*(τ*μ + q))
                 )
                 value_lie = u(ct) + β*(
-                    vulnerable*V_aut_itp(log(wtp1_lie)) +
-                    (1-vulnerable)*V_itp(log(wtp1_lie))
+                    vulnerable*compute_EV(m, V_aut_itp, wtp1_lie) +
+                    (1-vulnerable)*compute_EV(m, V_itp, wtp1_lie)
                 )
 
                 # No lying if hold too small a share
@@ -257,40 +276,54 @@ function compute_wealth_distrbution(m, bstar, xstar, sstar, q)
         xtp1 = x_itp(logw_t)
 
         if report_truth == 1
-            logw_tp1_forget = log((1 + r)*btp1 + xtp1*q)
-            logw_tp1_mistake = log((1 + r)*btp1 + (1 - γ)*xtp1*(τ*μ + q))
-            logw_tp1_nomistake = log((1 + r)*btp1 + (1 + γ*(π/(1-π)))*xtp1*(τ*μ + q))
+            w_tp1_forget = (1 + r)*btp1 + xtp1*q
+            w_tp1_mistake = (1 + r)*btp1 + (1 - γ)*xtp1*(τ*μ + q)
+            w_tp1_nomistake = (1 + r)*btp1 + (1 + γ*(π/(1-π)))*xtp1*(τ*μ + q)
 
-            logw_tp1_vals = [logw_tp1_forget, logw_tp1_mistake, logw_tp1_nomistake]
+            w_tp1_vals = [w_tp1_forget, w_tp1_mistake, w_tp1_nomistake]
             probs = [η, (1-η)*π, (1-η)*(1-π)]
         else
             vulnerable = Int(xtp1 >= α*xbar)
-            logw_tp1 = log(
+            w_tp1 = (
                 (1+r)*btp1 +
                 vulnerable*((1 + γ*((1-π)/π))*xtp1*τ*μ + κ*μ) +
                 (1-vulnerable)*(1 - γ)*xtp1*(τ*μ + q)
             )
-            logw_tp1_vals = [logw_tp1]
+            w_tp1_vals = [w_tp1]
             probs = [1.0]
         end
 
-        for (i, logw_tp1) in enumerate(logw_tp1_vals)
+        nnodes, nvals = length(m.nodes), length(w_tp1_vals)
+        shocked_wtp1_vals = zeros(nnodes*nvals)
+        shocked_probs = zeros(nnodes*nvals)
+        counter = 1
+        for (_prob, _val) in zip(probs, w_tp1_vals)
+            for (_pshock, _shock) in zip(m.weights, m.nodes)
+                shocked_wtp1_vals[counter] = _val + _shock
+                shocked_probs[counter] = _prob*_pshock
+                counter += 1
+            end
+        end
+
+        for (i, w_tp1) in enumerate(shocked_wtp1_vals)
+
+            logw_tp1 = log(max.(w_tp1, 1e-8))
             i_tp1 = searchsortedfirst(logw_grid_fine, logw_tp1)
 
             # If value is less than anything on grid then put all mass on lowest
             # wealth in vector
             if i_tp1 <= 1
-                Πw[i_t, 1] += probs[i]
+                Πw[i_t, 1] += shocked_probs[i]
             # If value is larger than anything on grid then put all mass on
             # largest wealth in vector
             elseif i_tp1 >= 2*nw
-                Πw[i_t, end] += probs[i]
+                Πw[i_t, end] += shocked_probs[i]
             else
                 spread = logw_grid_fine[i_tp1] - logw_grid_fine[i_tp1 - 1]
                 weight_to_lb = (logw_tp1 - logw_grid_fine[i_tp1 - 1]) / spread
                 weight_to_ub = (logw_grid_fine[i_tp1] - logw_tp1) / spread
-                Πw[i_t, i_tp1 - 1] += weight_to_lb*probs[i]
-                Πw[i_t, i_tp1] += weight_to_ub*probs[i]
+                Πw[i_t, i_tp1 - 1] += weight_to_lb*shocked_probs[i]
+                Πw[i_t, i_tp1] += weight_to_ub*shocked_probs[i]
             end
         end
     end
@@ -305,12 +338,11 @@ end
 function solve(m::PortfolioChoiceModel)
 
     # bounds for q -- something to bracket the fixed point??
-    q0 = 0.01
+    q0 = 2.5
     q1 = 10.0
 
     # Solve autarkic problem
     b_aut, V_aut = solve_postcorruption(m)
-
 
     token_price = brent(q0, q1) do q
         #= General outline:
@@ -343,11 +375,6 @@ end
 m = PortfolioChoiceModel()
 solve(m)
 
-# TODO: Currently the wealth distribution seems too tight -- This means that
-#       there are too many people on the margin which makes it hard to find the
-#       price that clears market because people move back and forth too quickly.
-#       Can resolve this by adding random shocks to wealth -- Will need to
-#       integrate over these shocks though.
 =#
 
 #=
