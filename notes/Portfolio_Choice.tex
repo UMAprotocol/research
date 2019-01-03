@@ -1,0 +1,105 @@
+\documentclass[12pt]{article}
+
+  % Get right packages
+  \usepackage{amsmath}
+  \usepackage{amssymb}
+  \usepackage{amsthm}
+  \usepackage{fullpage} % Package to use full page
+  \usepackage{hyperref}
+  \usepackage{parskip} % Package to tweak paragraph skipping
+
+  % User commands
+  \newtheorem{thm}{Theorem}
+  \DeclareMathOperator*{\argmax}{argmax}
+
+  % Title info
+  \title{Portfolio Choice Problem}
+  \author{UMA Project}
+  \date{\today}
+
+\begin{document}
+
+\maketitle
+
+
+\section{General Model}
+
+
+\subsection{Oracle}
+
+  The Oracle issues totaly supply 1 of the vote token and desires to report some state
+  $S_t \in \{0, 1\}$ correctly. The Oracle does not know the true value of $S_t$ but believes that
+  $S_t = 1$ with probability $p_0 \geq 0.5$. The Oracle then uses votes by individuals as signals
+  about the true state and will report $0$ if enough voters report $s = 0$\footnote{Enough is
+  determined by treating the Oracle as a Bayesian decision maker. It reports $\hat{S} = 0$ if
+  $\text{Prob}(S_t = 0) > 0.5$}.
+
+  The Oracle then punishes those who vote with the minority by taking a fraction $\gamma$ of their
+  vote coins and rewards those who voted with majority by giving them $(1 - \gamma) \frac{\pi}{1 -
+  \pi}$ vote coins where $\pi$ is the fraction who voted the minority vote.
+
+  The Oracle is responsible for protecting $\mu_t$ margin in some system and generates revenue
+  $\Pi_t = \tau_t(\mu_t) \mu_t$. $\mu_t$ follow some stochastic process. The Oracle pays the revenue
+  out as dividends to vote token holders.
+
+
+\subsection{Individuals}
+
+  Individuals are allowed to buy and sell vote tokens, $x$, and  risk-free bonds, $b$. Risk-free
+  bonds pay return $r$ and vote tokens pay an amount that corresponds to the individual's vote,
+  $s_t$, and the Oracle's reported state, $\hat{S}$ according to $(1 + \gamma(s_t, \hat{S}_t)) (d_t
+  + p_t)$ where $d_t$ is a dividend and $p_t$ is the resale value of the vote token. If a voter
+  successfully corrupts the Oracle then they are able to seize a fraction $\kappa$ of the margin
+  that is being held by the Oracle, but afterwards everyone will enter a world in which there are
+  only risk-free bonds and no vote tokens. Individuals receive utility from consumption and must
+  choose a portfolio of assets along with whether to truthfully report to the Oracle. While voting,
+  agents forget to vote with probability $\eta$ and make a mistake with their vote with probability
+  $\pi$
+
+  An agent with wealth $w_t$ when margin is at $\mu_t$ and mistake probability is $\pi_t$ faces the
+  following problem:
+
+  \begin{align}
+    V(w_t, 0) &= \max_{b_{t+1}, x_{t+1}, s_{t}} u(c_t) + \beta E_x \left[ V(w_{t+1}, \text{Corrupt}) \right] \\
+    w_{t+1} &= (1 + r) b_{t+1} + x_{t+1} (1 + \gamma(s_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_t)) \\
+    c_t &= w_t - b_{t+1} - p_t x_{t+1}
+  \end{align}
+
+  and
+
+  \begin{align*}
+    V(w_t, 1) = \max_{b_{t+1}} u(c_t) + \beta V(w_{t+1}, 1) \\
+    w_{t+1} &= (1 + r) b_{t+1} \\
+    c_t &= w_t - b_{t+1}
+  \end{align*}
+
+  When computing expectations, agents believe that others will report the truth (besides for
+  non-participation and trembling hand mistakes). Thus they will only attack if they can do so alone
+  profitably.
+
+\subsection{Truthful Oracle}
+
+  A \textit{Truthful Oracle} is an Oracle policy $(\gamma, \tau_t(\mu_t)$ such that $\hat{S}_t = 1$. This is done
+  by ensuring that the truth-tellers value the token more than the liars do.
+
+  A \textit{Truthful Equilibrium} is
+
+  \begin{enumerate}
+    \item Value functions $V : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}$
+    \item Portfolio decision functions $b^*, c^* : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}^{+}$
+    \item Vote decision function $s^*: \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \{0, 1 \}$
+    \item Prices $p_t : \mu \times \{0, 1\} \rightarrow \mathcal{R}^{+}$
+    \item Oracle dividend function $d_t \rightarrow \mathcal{R}^{+} \rightarrow \mathcal{R}^+$
+    \item Oracle redistribution policy: $\gamma \in (0, 1)$
+  \end{enumerate}
+
+  such that
+
+  \begin{itemize}
+    \item Value functions and policy functions are optimal given prices
+    \item $s^* = 1$
+    \item The Oracle is truthful
+    \item Prices clear markets
+  \end{itemize}
+
+\end{document}
