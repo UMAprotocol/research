@@ -7,6 +7,7 @@
 
   % Graphics Packages
   \usepackage{graphicx}
+  \usepackage{pgf}
   \usepackage[export]{adjustbox}
 
   % Colors
@@ -47,8 +48,8 @@
 
   \begin{itemize}
     \item System security\textemdash{Cost of Corruption > Profit from Corruption}
-    \item Understand effect of changes in tax rate on equilibrium token price
-    \item ?
+    \item Understand effect tax rate in relation to equilibrium token price
+    \item Dynamic tax rates to induce secure token price \alert{(Not Today)}
   \end{itemize}
 
 \end{frame}
@@ -114,13 +115,12 @@
 
   Liars are deliberate... No forgetting and no mistakes
 
+  Equilibrium concept is \textit{Perfect Bayesian Equilibrium} \textemdash{
+  Everyone believes that everyone else will attempt to tell truth}
+
 \end{frame}
 
 \begin{frame} \frametitle{Details: Wealth Evolution}
-
-  All bonds pay return $r$
-
-  Tokens pay depending on what happens:
 
   If you, and everyone else, attempt to tell truth then
 
@@ -148,15 +148,35 @@
 
 \begin{frame} \frametitle{Risk-Neutral Pricing}
 
-  If there were no information or purchasing frictions in a world with risk-neutral
-  investors, then all assets would have same return
+  If there all individuals were risk-neutral investors, then the token market
+  cap would be its expected discounted returns
 
   \begin{align*}
-    (1 + r) &= \frac{\eta q + (1 - \eta) ( (\pi (1 - \gamma) + (1 - \pi) (1 + \gamma \frac{\pi}{1 - \pi})) (\frac{\mu \tau}{n} + q)}{q}
+    q = E \left[ \sum_{t=0}^{\infty} \left(\frac{1}{1 + r} \right)^t (\text{dividend payment}) \right]
   \end{align*}
 
-  With \$1,000,000 in margin, a 10 basis point tax, and 100,000,000 tokens issued then price per token would be \$
+\end{frame}
 
+\begin{frame} \frametitle{Risk-Neutral Pricing}
+
+  With 1,000,000 in margin and a (yearly) discount rate of $r = 0.04$
+
+  \begin{center}
+    \resizebox{0.8\textwidth}{!}{\input{VaryTau.pgf}}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+    \begin{tabular}{l|ccc}
+      $\tau$ & 5 bp & 7.5 bp & 10 bp \\
+      \hline
+      0 & 0 & 0 & 0 \\
+      0 & 0 & 0 & 0 \\
+      0 & 0 & 0 & 0 \\
+      0 & 0 & 0 & 0 \\
+    \end{tabular}
+  \end{center}
 \end{frame}
 
 \end{document}
