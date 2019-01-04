@@ -39,15 +39,39 @@ end
 
 # One model unit is ~$10,000 --> ybar ~ $2,500 per week, μ -> $1,000,000 margin
 function PortfolioChoiceModel(;
-        β=0.999, u=LogUtility(), r=0.0005, ybar=0.25, σ=0.1, η=0.30, π=0.05,
-        κ=0.40, α=2.5, xbar=1.0, μ=100.0, τ=0.001, γ=0.025, nw=250, wmin=1e-8,
-        wmax=12.5
+        β=0.99925, u=LogUtility(), r=0.0008, ybar=0.25, σ=0.1, η=0.30, π=0.05,
+        κ=0.40, α=2.0, xbar=1.0, μ=100.0, τ=0.001, γ=0.025, nw=750, wmin=1e-8,
+        wmax=150.0
     )
 
     nodes, weights = qnwnorm(13, 0.0, σ^2)
     logw_grid = range(log(wmin), stop=log(wmax), length=nw)
 
     return PortfolioChoiceModel(β, u, r, ybar, nodes, weights, η, π, κ, α, xbar, μ, τ, γ, logw_grid)
+end
+
+
+function compute_risk_neutral_q(m::PortfolioChoiceModel, lb, ub)
+    @unpack η, π, γ, μ, τ, r = m
+    lhs = (1.0 + r)
+
+    solve_me(q) =
+        # Risk-free - (forget  + don't forget (mistake + no mistake)
+        lhs - (η*q + (1-η)*(π*(1-γ)*(μ*τ + q) + (1-π)*(1 + γ*(π / (1-π)))*(μ*τ + q))) / q
+
+    return bisect(solve_me, lb, ub)
+end
+
+
+function compute_risk_neutral_q(μ, τ, r, γ, η, π, ntokens, lb, ub)
+    @unpack η, π, γ, μ, τ, r = m
+    lhs = (1.0 + r)
+
+    solve_me(q) =
+        # Risk-free - (forget  + don't forget (mistake + no mistake)
+        lhs - (η*q + (1-η)*(π*(1-γ)*(μ*τ/ntokens + q) + (1-π)*(1 + γ*(π / (1-π)))*(μ*τ/ntokens + q))) / q
+
+    bisect(solve_me, lb, ub)
 end
 
 
@@ -154,7 +178,7 @@ function solve_given_price(m::PortfolioChoiceModel, q, V_aut)
 
         for iw in 1:nw
             wt = exp(logw_grid[iw]) + ybar
-            bgrid = range(0, stop=wt - 1e-4, length=200)
+            bgrid = range(0, stop=wt - 1e-4, length=100)
             xgrid = range(0, stop=wt/q - 1e-4, length=200)
 
             # Maximize over choices
@@ -187,7 +211,7 @@ function solve_given_price(m::PortfolioChoiceModel, q, V_aut)
 
                 # Liars don't make mistakes or forget
                 wtp1_lie = ((1 + r)*btp1 +
-                    vulnerable*((1 + γ*(1 - π)/π)*xtp1*τ*μ + κ*μ) +
+                    vulnerable*((1 + γ*(1 - π)/π)*xtp1*(τ*μ + 0.0) + κ*μ) +
                     (1 - vulnerable)*((1 - γ)*xtp1*(τ*μ + q))
                 )
                 value_lie = u(ct) + β*(
@@ -260,6 +284,7 @@ function compute_wealth_distrbution(m, bstar, xstar, sstar, q)
         ), Interpolations.Flat()
     )
 
+    # TODO: Rather than interpolate over s, try
     s_itp = extrapolate(
         Interpolations.scale(
             interpolate(sstar, BSpline(Interpolations.Constant())), logw_grid
@@ -319,9 +344,9 @@ function compute_wealth_distrbution(m, bstar, xstar, sstar, q)
             elseif i_tp1 >= 2*nw
                 Πw[i_t, end] += shocked_probs[i]
             else
-                spread = logw_grid_fine[i_tp1] - logw_grid_fine[i_tp1 - 1]
-                weight_to_lb = (logw_tp1 - logw_grid_fine[i_tp1 - 1]) / spread
-                weight_to_ub = (logw_grid_fine[i_tp1] - logw_tp1) / spread
+                spread = exp(logw_grid_fine[i_tp1]) - exp(logw_grid_fine[i_tp1 - 1])
+                weight_to_ub = (exp(logw_tp1) - exp(logw_grid_fine[i_tp1 - 1])) / spread
+                weight_to_lb = 1.0 - weight_to_ub
                 Πw[i_t, i_tp1 - 1] += weight_to_lb*shocked_probs[i]
                 Πw[i_t, i_tp1] += weight_to_ub*shocked_probs[i]
             end
@@ -335,11 +360,7 @@ function compute_wealth_distrbution(m, bstar, xstar, sstar, q)
 end
 
 
-function solve(m::PortfolioChoiceModel)
-
-    # bounds for q -- something to bracket the fixed point??
-    q0 = 2.5
-    q1 = 10.0
+function solve_PCM(m::PortfolioChoiceModel, q0=5.0, q1=250.0)
 
     # Solve autarkic problem
     b_aut, V_aut = solve_postcorruption(m)
@@ -372,9 +393,15 @@ function solve(m::PortfolioChoiceModel)
 end
 
 #=
-m = PortfolioChoiceModel()
-solve(m)
+m = PortfolioChoiceModel(wmax=42.5, nw=425)
+# solve(m)
 
+q = 3.5420894234786453
+
+b_aut, V_aut = solve_postcorruption(m)
+bstar, xstar, sstar, V = solve_given_price(m, q, V_aut)
+logwvals, wealth_dist = compute_wealth_distrbution(m, bstar, xstar, sstar, q)
+residual = token_market_clearing(m, xstar, logwvals, wealth_dist)
 =#
 
 #=

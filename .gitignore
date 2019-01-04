@@ -99,3 +99,4 @@ data/
 *.csv
 *.pyc
 cryptocompare_apikey.json
+*.pdf
