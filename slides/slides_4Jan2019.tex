@@ -152,7 +152,7 @@
   cap would be its expected discounted returns
 
   \begin{align*}
-    q = E \left[ \sum_{t=0}^{\infty} \left(\frac{1}{1 + r} \right)^t (\text{dividend payment}) \right]
+    q = E \left[ \sum_{t=0}^{T} \left(\frac{1}{1 + r} \right)^t (\text{dividend payment}) \right]
   \end{align*}
 
 \end{frame}
@@ -164,19 +164,40 @@
   \begin{center}
     \resizebox{0.8\textwidth}{!}{\input{VaryTau.pgf}}
   \end{center}
+
 \end{frame}
 
-\begin{frame}
+\begin{frame} \frametitle{Risk-Neutral Pricing}
   \begin{center}
-    \begin{tabular}{l|ccc}
-      $\tau$ & 5 bp & 7.5 bp & 10 bp \\
+    \begin{tabular}{l|cc}
+      $\tau$ & Yearly Tax Rate & Years of Dividends Required \\
       \hline
-      0 & 0 & 0 & 0 \\
-      0 & 0 & 0 & 0 \\
-      0 & 0 & 0 & 0 \\
-      0 & 0 & 0 & 0 \\
+      5 bp & 2.5\% & 61 \\
+      10 bp & 5.3\% & 18 \\
+      15 bp & 8.1\% & 10 \\
+      20 bp & 10.9\% & 7 \\
+      25 bp & 13.9\% & 5 \\
     \end{tabular}
   \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{Oracle Vulnerability}
+
+  Model teaches us that
+
+  \begin{itemize}
+    \item \alert{Oracle is vulnerable when dividends are too low}\textemdash{Able
+    to support system at even lower tax rates than seen in previous slides...
+    However, some of this is due to model being forced to a world without this asset
+    if corrupted}
+    \item Low prices alone do \alert{not} corrupt the system as long as the present
+          discounted value of dividends is sufficiently high
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame} \frametitle{Next Steps}
+  Next steps
 \end{frame}
 
 \end{document}
