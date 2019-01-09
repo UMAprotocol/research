@@ -1,0 +1,203 @@
+\documentclass[10pt]{beamer}
+
+  % Math Packages
+  \usepackage{amsmath}
+  \usepackage{amsthm}
+  \usepackage{mathtools}
+
+  % Graphics Packages
+  \usepackage{graphicx}
+  \usepackage{pgf}
+  \usepackage[export]{adjustbox}
+
+  % Colors
+  \definecolor{umared}{RGB}{255,74,74}
+  \definecolor{mygray}{RGB}{66,66,66}
+
+  % Theme Settings
+  \usetheme{metropolis}
+
+  \setbeamercolor{normal text}{fg=mygray}
+  \setbeamercolor{alerted text}{fg=umared}
+  \setbeamercolor{title text}{fg=mygray}
+  \setbeamercolor{title separator}{fg=umared}
+  \setbeamercolor{progress bar}{fg=umared}
+  \setbeamercolor{frametitle}{bg=umared}
+
+\title{Oracle Taxation Theory}
+\logo{
+  \makebox[0.13\paperwidth]{\includegraphics[width=1.5cm,keepaspectratio]{Uma_Logo.png} \hfill}
+}
+\date[]{\today}
+
+\begin{document}
+
+% Title Slide
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% --------------------------------------- %
+% Introduction
+% --------------------------------------- %
+\section{Introduction}
+
+\begin{frame} \frametitle{What do we want to accomplish}
+
+  Questions we are interested in:
+
+  \begin{itemize}
+    \item System security\textemdash{Cost of Corruption > Profit from Corruption}
+    \item Understand effect tax rate in relation to equilibrium token price
+    \item Dynamic tax rates to induce secure token price \alert{(Not Today)}
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame} \frametitle{Goals}
+
+  Why economic theory?
+
+  \begin{itemize}
+    \item Safe environment for ``testing''
+    \item Mathematical formalism makes assumptions transparent
+    \item Often learn new things about the environment we build
+  \end{itemize}
+
+\end{frame}
+
+% --------------------------------------- %
+% Model
+% --------------------------------------- %
+\section{Model Structure}
+
+\begin{frame} \frametitle{Overview}
+
+  \begin{center}
+    \includegraphics[width=0.8\paperwidth]{ModelOverview.png}
+  \end{center}
+
+\end{frame}
+
+\begin{frame} \frametitle{Details: Oracle}
+
+  Must report information to derivatives market, but cannot verify the
+  information on its own
+
+  Requires others to vote on information
+
+  Oracle sells voting rights and raises tax revenue ($\mu$ margin taxed at $\tau$)
+
+  Uses revenue to incentivize people to reveal the needed information
+
+\end{frame}
+
+\begin{frame} \frametitle{Details: Individuals}
+
+  There are many individuals
+
+  Each individual likes to eat consumption goods
+
+  Can save for tomorrow using bonds or tokens
+
+\end{frame}
+
+\begin{frame} \frametitle{Details: Voting}
+
+  If an individual owns tokens, they vote on information Oracle must report
+
+  If they choose to tell the truth then
+
+  \begin{itemize}
+    \item With probability $\eta$, they forget to vote
+    \item With probability $\pi$, they make a mistake
+  \end{itemize}
+
+  Liars are deliberate... No forgetting and no mistakes
+
+  Equilibrium concept is \textit{Perfect Bayesian Equilibrium} \textemdash{
+  Everyone believes that everyone else will attempt to tell truth}
+
+\end{frame}
+
+\begin{frame} \frametitle{Details: Wealth Evolution}
+
+  If you, and everyone else, attempt to tell truth then
+
+  \begin{align*}
+    w_{t+1} &= \begin{cases} (1 + r) b + q x \quad \text{if forget} \\
+                             (1 + r) b + (1 + \gamma \frac{\pi}{1 - \pi}) (q + \mu \tau) x \quad \text{if report truth} \\
+                             (1 + r) b + (1 - \gamma) (q + \mu \tau) x \quad \text{if mistake} \\
+               \end{cases}
+  \end{align*}
+
+  If you lie then
+
+  \begin{align*}
+    w_{t+1} &= \begin{cases} (1 + r)b + (1 + \gamma \frac{1 - \pi}{\pi})(\mu \tau + {\color{red} 0}) x + {\color{red}\kappa \mu} \quad \text{if corrupted} \\
+                             (1 + r)b + (1 - \gamma)(\mu \tau + q) x \quad \text{if not corrupted}
+               \end{cases}
+  \end{align*}
+
+\end{frame}
+
+% --------------------------------------- %
+% Results
+% --------------------------------------- %
+\section{Results}
+
+\begin{frame} \frametitle{Risk-Neutral Pricing}
+
+  If there all individuals were risk-neutral investors, then the token market
+  cap would be its expected discounted returns
+
+  \begin{align*}
+    q = E \left[ \sum_{t=0}^{T} \left(\frac{1}{1 + r} \right)^t (\text{dividend payment}) \right]
+  \end{align*}
+
+\end{frame}
+
+\begin{frame} \frametitle{Risk-Neutral Pricing}
+
+  With 1,000,000 in margin and a (yearly) discount rate of $r = 0.04$
+
+  \begin{center}
+    \resizebox{0.8\textwidth}{!}{\input{VaryTau.pgf}}
+  \end{center}
+
+\end{frame}
+
+\begin{frame} \frametitle{Risk-Neutral Pricing}
+  \begin{center}
+    \begin{tabular}{l|cc}
+      $\tau$ & Yearly Tax Rate & Years of Dividends Required \\
+      \hline
+      5 bp & 2.5\% & 61 \\
+      10 bp & 5.3\% & 18 \\
+      15 bp & 8.1\% & 10 \\
+      20 bp & 10.9\% & 7 \\
+      25 bp & 13.9\% & 5 \\
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+\begin{frame} \frametitle{Oracle Vulnerability}
+
+  Model teaches us that
+
+  \begin{itemize}
+    \item \alert{Oracle is vulnerable when dividends are too low}\textemdash{Able
+    to support system at even lower tax rates than seen in previous slides...
+    However, some of this is due to model being forced to a world without this asset
+    if corrupted}
+    \item Low prices alone do \alert{not} corrupt the system as long as the present
+          discounted value of dividends is sufficiently high
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame} \frametitle{Next Steps}
+  Next steps
+\end{frame}
+
+\end{document}
