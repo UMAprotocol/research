@@ -22,84 +22,115 @@
 \maketitle
 
 
-\section{General Model}
+\section{Baseline Heterogeneous Agent Model}
 
-
-\subsection{Oracle}
-
-  The Oracle issues totaly supply 1 of the vote token and desires to report some state
-  $S_t \in \{0, 1\}$ correctly. The Oracle does not know the true value of $S_t$ but believes that
-  $S_t = 1$ with probability $p_0 \geq 0.5$. The Oracle then uses votes by individuals as signals
-  about the true state and will report $0$ if enough voters report $s = 0$\footnote{Enough is
-  determined by treating the Oracle as a Bayesian decision maker. It reports $\hat{S} = 0$ if
-  $\text{Prob}(S_t = 0) > 0.5$}.
-
-  The Oracle then punishes those who vote with the minority by taking a fraction $\gamma$ of their
-  vote coins and rewards those who voted with majority by giving them $(1 - \gamma) \frac{\pi}{1 -
-  \pi}$ vote coins where $\pi$ is the fraction who voted the minority vote.
-
-  The Oracle is responsible for protecting $\mu_t$ margin in some system and generates revenue
-  $\Pi_t = \tau_t(\mu_t) \mu_t$. $\mu_t$ follow some stochastic process. The Oracle pays the revenue
-  out as dividends to vote token holders.
-
-
-\subsection{Individuals}
-
-  Individuals are allowed to buy and sell vote tokens, $x$, and  risk-free bonds, $b$. Risk-free
-  bonds pay return $r$ and vote tokens pay an amount that corresponds to the individual's vote,
-  $s_t$, and the Oracle's reported state, $\hat{S}$ according to $(1 + \gamma(s_t, \hat{S}_t)) (d_t
-  + p_t)$ where $d_t$ is a dividend and $p_t$ is the resale value of the vote token. If a voter
-  successfully corrupts the Oracle then they are able to seize a fraction $\kappa$ of the margin
-  that is being held by the Oracle, but afterwards everyone will enter a world in which there are
-  only risk-free bonds and no vote tokens. Individuals receive utility from consumption and must
-  choose a portfolio of assets along with whether to truthfully report to the Oracle. While voting,
-  agents forget to vote with probability $\eta$ and make a mistake with their vote with probability
-  $\pi$
-
-  An agent with wealth $w_t$ when margin is at $\mu_t$ and mistake probability is $\pi_t$ faces the
-  following problem:
-
-  \begin{align}
-    V(w_t, 0) &= \max_{b_{t+1}, x_{t+1}, s_{t}} u(c_t) + \beta E_x \left[ V(w_{t+1}, \text{Corrupt}) \right] \\
-    w_{t+1} &= (1 + r) b_{t+1} + x_{t+1} (1 + \gamma(s_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_t)) \\
-    c_t &= w_t - b_{t+1} - p_t x_{t+1}
-  \end{align}
-
-  and
-
-  \begin{align*}
-    V(w_t, 1) &= \max_{b_{t+1}} u(c_t) + \beta V(w_{t+1}, 1) \\
-    w_{t+1} &= (1 + r) b_{t+1} \\
-    c_t &= w_t - b_{t+1}
-  \end{align*}
-
-  When computing expectations, agents believe that others will report the truth (besides for
-  non-participation and trembling hand mistakes). Thus they will only attack if they can do so alone
-  profitably.
-
-\subsection{Truthful Oracle}
-
-  A \textit{Truthful Oracle} is an Oracle policy $(\gamma, \tau_t(\mu_t)$ such that $\hat{S}_t = 1$. This is done
-  by ensuring that the truth-tellers value the token more than the liars do.
-
-  A \textit{Truthful Equilibrium} is
+  Prior to discussing the details of the model, it is helpful to have a broad sense of what the
+  inputs to the model will be:
 
   \begin{enumerate}
-    \item Value functions $V : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}$
-    \item Portfolio decision functions $b^*, c^* : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}^{+}$
-    \item Vote decision function $s^*: \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \{0, 1 \}$
-    \item Prices $p_t : \mu \times \{0, 1\} \rightarrow \mathcal{R}^{+}$
-    \item Oracle dividend function $d_t \rightarrow \mathcal{R}^{+} \rightarrow \mathcal{R}^+$
-    \item Oracle redistribution policy: $\gamma \in (0, 1)$
+    \item There is an Oracle who is responsible for reporting some stochastic state, but is unable
+          to determine this information on its own. In order to get the information from other
+          individuals, the Oracle will issue voting tokens and reward individuals for reporting
+          information, but must ensure that it is in people's interests to tell the truth.
+    \item There are individuals who like consumption and participate in financial markets and can
+          help (by reporting the truth), or hinder (by reporting the wrong state), the Oracle in its
+          attempts to determine the stochastic state.
+    \item Though not modeled directly, there is a financial market that depends on the information
+          being provided by the Oracle. If the Oracle reports the wrong stochastic state then some
+          of the collateral from this market can be stolen.
   \end{enumerate}
 
-  such that
+  These components give rise to various tradeoffs and we will look for policies that can sensibly
+  ensure that individuals find it optimal to report the truth and guarantee that the collateral
+  from the market is safe from being stolen.
 
-  \begin{itemize}
-    \item Value functions and policy functions are optimal given prices
-    \item $s^* = 1$
-    \item The Oracle is truthful
-    \item Prices clear markets
-  \end{itemize}
+  We now proceed to describe these components in more detail
+
+  \subsection{Oracle}
+
+    The Oracle issues total supply 1 of the vote token and desires to report some state
+    $S_t \in \{0, 1\}$ correctly. The Oracle does not know the true value of $S_t$ but believes that
+    $S_t = 1$ with probability $p_0 \geq 0.5$. The Oracle then uses votes by individuals as signals
+    about the true state and will report $0$ if enough voters report $s = 0$\footnote{Enough can
+    eventually be determined by treating the Oracle as a Bayesian decision maker who has a loss
+    function over reporting a lie, postponing reporting, and reporting the truth.}.
+
+    The Oracle's policy is to punish those who vote against its reported state by taking a fraction
+    $\gamma$ of their vote tokens and by rewarding those who voted with majority by giving them the
+    seized tokens. The majority receives $(1 - \gamma) \frac{\tilde{\pi}}{1 - \tilde{\pi}}$ where
+    $\tilde{\pi}$ is the percent of individuals who vote against the majority.
+
+    The Oracle is responsible for protecting $\mu_t$ margin in some system and generates revenue
+    $\Pi_t = \tau_t(\mu_t) \mu_t$. $\mu_t$ follow some stochastic process. The Oracle pays the
+    revenue out as dividends to vote token holders.
+
+  \subsection{Individuals}
+
+    Individuals are allowed access to two financial assets:
+
+    \begin{enumerate}
+      \item Risk-free bonds which pay return $r$
+      \item Vote tokens issued by the Oracle which will pay an amount which depends on the
+            individual's vote, $s_t$, and the Oracle's reported state, $\hat{S}_t$, according to
+            $(1 + \gamma(s_t, \hat{S}_t)) (d_t + p_t)$ where $d_t$ is period $t$s dividend and
+            $p_{t+1}$ is the value at which the token could be resold
+    \end{enumerate}
+
+    Voters who choose to vote dishonestly may successfully corrupt the Oracle. In order to
+    successfully corrupt the Oracle, they must own enough votes to convince the Oracle to report
+    the wrong state. If the dishonest voters successfully corrupt the Oracle then they are able to
+    seize a fraction $\kappa$ of the margin in the system, but, afterwards, everyone will enter a
+    new regime where they only have access to the risk-free bond, and, not the vote tokens.
+
+    Individuals receive utility from consumption and maximize their consumption by choosing a
+    portfolio of assets and to report honestly or dishonestly. Additionally, when voting,
+    individuals who would like to report the truth forget to vote with probability $\eta$ and make a
+    mistake with their vote with probability $\pi$. We assume that dishonest voters are more
+    deliberate in the sense that they neither forget nor make mistakes in their votes.
+
+    An agent with wealth $w_t$, with the system uncorrupted, and margin at $\mu_t$ faces the
+    following problem:
+
+    \begin{align}
+      V(w_t, 0) &= \max_{b_{t+1}, x_{t+1}, s_{t}} u(c_t) + \beta E_x \left[ V(w_{t+1}, \text{Corrupt}_t) \right] \\
+      w_{t+1} &= (1 + r) b_{t+1} + x_{t+1} (1 + \gamma(s_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_t)) \\
+      c_t &= w_t - b_{t+1} - p_t x_{t+1}
+    \end{align}
+
+    and agent with wealth $w_t$ with a corrupted system faces
+
+    \begin{align*}
+      V(w_t, 1) &= \max_{b_{t+1}} u(c_t) + \beta V(w_{t+1}, 1) \\
+      w_{t+1} &= (1 + r) b_{t+1} \\
+      c_t &= w_t - b_{t+1}
+    \end{align*}
+
+    When computing expectations, agents believe that others will report the truth (besides for
+    non-participation and trembling hand mistakes). Thus they will only attack if they can do so alone
+    profitably.
+
+  \subsection{Truthful Oracle}
+
+    A \textit{Truthful Oracle} is an Oracle policy $(\gamma, \tau_t(\mu_t)$ such that
+    $\hat{S}_t = 1$. This is done by ensuring that the truth-tellers value the token more than the
+    liars do
+
+    A \textit{Truthful Equilibrium} is
+
+    \begin{enumerate}
+      \item Value functions $V : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}$
+      \item Portfolio decision functions $b^*, x^* : \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \mathcal{R}^{+}$
+      \item Vote decision function $s^*: \mathcal{R}^+ \times \mathcal{R}^+ \rightarrow \{0, 1 \}$
+      \item Price $p \in \mathcal{R}^+$
+      \item Oracle redistribution policy: $\gamma \in (0, 1)$
+    \end{enumerate}
+
+    such that
+
+    \begin{itemize}
+      \item Value functions and policy functions are optimal given prices
+      \item The Oracle policy produces a truthful oracle
+      \item Token price, $p$, clears token market
+    \end{itemize}
 
 \end{document}

@@ -35,12 +35,12 @@ def expected_payment_token(pcm, npers, nsims):
 
     return eps
 
-pcm_25bp = PortfolioChoiceModel(0.00075, 1000000, 0.0025, 0.50, 0.25, 0.01, 0.025, 1)
-pcm_20bp = PortfolioChoiceModel(0.00075, 1000000, 0.002, 0.50, 0.25, 0.01, 0.025, 1)
-pcm_15bp = PortfolioChoiceModel(0.00075, 1000000, 0.0015, 0.50, 0.25, 0.01, 0.025, 1)
-pcm_10bp = PortfolioChoiceModel(0.00075, 1000000, 0.001, 0.50, 0.25, 0.01, 0.025, 1)
-pcm_5bp = PortfolioChoiceModel(0.00075, 1000000, 0.0005, 0.50, 0.25, 0.01, 0.025, 1)
-pcm_1bp = PortfolioChoiceModel(0.00075, 1000000, 0.0001, 0.50, 0.25, 0.01, 0.025, 1)
+# pcm_25bp = PortfolioChoiceModel(0.00075, 1000000, 0.0025, 0.50, 0.05, 0.01, 0.025, 1)
+# pcm_20bp = PortfolioChoiceModel(0.00075, 1000000, 0.002, 0.50, 0.05, 0.01, 0.025, 1)
+pcm_15bp = PortfolioChoiceModel(0.00075, 1000000, 0.0015, 0.50, 0.05, 0.01, 0.025, 1)
+pcm_10bp = PortfolioChoiceModel(0.00075, 1000000, 0.001, 0.50, 0.05, 0.01, 0.025, 1)
+pcm_5bp = PortfolioChoiceModel(0.00075, 1000000, 0.0005, 0.50, 0.05, 0.01, 0.025, 1)
+pcm_1bp = PortfolioChoiceModel(0.00075, 1000000, 0.0001, 0.50, 0.05, 0.01, 0.025, 1)
 
 
 eps_25bp = expected_payment_token(pcm_25bp, 150*52, 5_000)
