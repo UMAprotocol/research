@@ -88,13 +88,17 @@
     mistake with their vote with probability $\pi$. We assume that dishonest voters are more
     deliberate in the sense that they neither forget nor make mistakes in their votes.
 
+    Agents experience wealth shocks (forced consumption shocks) throughout their life. If an agent
+    has wealth $w_{t}$ going into period $t$ then, when they start making their decisions, they have
+    wealth $w_t + \varepsilon_{t}$ where $\varepsilon \sim N(0, \sigma^2)$.
+
     An agent with wealth $w_t$, with the system uncorrupted, and margin at $\mu_t$ faces the
     following problem:
 
     \begin{align}
       V(w_t, 0) &= \max_{b_{t+1}, x_{t+1}, s_{t}} u(c_t) + \beta E_x \left[ V(w_{t+1}, \text{Corrupt}_t) \right] \\
       w_{t+1} &= (1 + r) b_{t+1} + x_{t+1} (1 + \gamma(s_{t+1}, \hat{S}_{t+1})) (d_{t+1}(\mu_{t+1}) + p_{t+1}(\mu_{t+1}, \hat{S}_t)) \\
-      c_t &= w_t - b_{t+1} - p_t x_{t+1}
+      c_t &= w_t + \varepsilon_t - b_{t+1} - p_t x_{t+1}
     \end{align}
 
     and agent with wealth $w_t$ with a corrupted system faces
@@ -102,7 +106,7 @@
     \begin{align*}
       V(w_t, 1) &= \max_{b_{t+1}} u(c_t) + \beta V(w_{t+1}, 1) \\
       w_{t+1} &= (1 + r) b_{t+1} \\
-      c_t &= w_t - b_{t+1}
+      c_t &= w_t + \varepsilon_t - b_{t+1}
     \end{align*}
 
     When computing expectations, agents believe that others will report the truth (besides for
