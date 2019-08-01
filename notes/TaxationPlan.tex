@@ -1,0 +1,182 @@
+\documentclass[12pt]{article}
+
+  % Get right packages
+  \usepackage{amsmath}
+  \usepackage{amssymb}
+  \usepackage{amsthm}
+  \usepackage{fullpage} % Package to use full page
+  \usepackage{hyperref}
+  \usepackage{parskip} % Package to tweak paragraph skipping
+
+  % User commands
+  \newtheorem{thm}{Theorem}
+  \DeclareMathOperator*{\argmax}{argmax}
+
+  % Title info
+  \title{Taxation Notes}
+  \author{UMA Project}
+  \date{\today}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Summary}
+
+  This document contains the thought process behind the thought flow on how the UMA taxation
+  policy should work. Each section contains a slightly different version of a model that can be used
+  to understand the tradeoffs induced by the tax
+
+  The sections include:
+
+  \begin{itemize}
+    \item Section \ref{sec:dss} asks the question, ``In a deterministic world in which the system
+          margin has reached a steady state, what is the lowest tax rate we can implement that
+          ensure incorruptibility?''
+    \item Section \ref{sec:dg} asks the question, ``If we knew exactly how margin would grow
+          could charge in each period and maintain the incorruptibility gurantee
+          starting today and going into the future, what is the minimum amount of taxes that we
+          could impose at each period?''
+    \item Section \ref{sec:sss} analyzes a model in which margin follows a stationary stochastic
+          process and thinks about the right way to smooth taxes while making sure that payments
+          can be made to ensure system is incorruptible.''
+  \end{itemize}
+
+  The main constraint in the choice of tax collected/buybacks conducted in each period is that the
+  profit from corrupting ($PfC$) the oracle is less than the cost of corruping ($CoC$) the oracle.
+  If corrupting the oracle requires a majority vote\footnote{This assumes the voting process simply
+  ellicits a yes or no question, but similar analysis can be done for a more generic vote procedure}
+  then this boils down to simply requiring that the cost of holding half of the tokens is less than
+  the $PfC$ which will be a combination of the margin in system and any excess funds held in a
+  ``rainy day fund.''
+
+  Let $\eta$ represents the percentage of tokens that do not vote in a given period, etc.
+
+  We will use following notation in these notes
+
+  \begin{itemize}
+    \item $B_t$ denotes the amount of tokens bought back prior to vote
+    \item $D_t$ denotes the amount of funds held in the ``rainy day fund''
+    \item $M_t$ denotes total margin in system
+    \item $\tau_t$ denotes the tax rate on the system
+    \item $p_t$ denotes the price of a single vote token
+    \item $S_t$ denotes the number of vote tokens
+    \item $T_t \equiv \tau_t M_t$ denotes total tax levied on system
+    \item $X_t \equiv B_t p_t$ denotes the amount of expenditure on buybacks
+  \end{itemize}
+
+  Additionally the following are parameters
+
+  \begin{itemize}
+    \item $\eta$ is percent of people who do not vote
+    \item $\pi$ is the inflation rate used to reward voters
+  \end{itemize}
+
+  \subsection{Price such that $PfC < CoC$}
+
+    In this section we determine what price is needed in a generic period to ensure that
+    $PfC < CoC$.
+
+    \begin{align*}
+      PfC_t \leq CoC_t \rightarrow PfC_t \leq \frac{1 - \eta}{2} p_t S_t \\
+      \rightarrow p_t \geq \frac{2}{1 - \eta} \frac{PfC_t}{S_t}
+    \end{align*}
+
+
+\section{Deterministic Steady State} \label{sec:dss}
+
+  In this version of the model, we will consider the system margin being constant over time.
+
+  Let the margin be given by $M_t = \bar{M}$, $PfC_t = \bar{PfC}$, and $X_t = \bar{X}$
+
+  Recall that the price that ensures $PfC < CoC$ is denoted by
+  $p_t \geq \frac{2}{1 - \eta} \frac{PfC_t}{S_t}$.
+
+  It's important to note that not all of the variables will be constant in the SS since there is
+  potentially non-zero inflation in the number of tokens. The number of tokens follows
+
+  \begin{align*}
+    S_{t+1} &= (1 + \pi) (S_t - B_t)
+  \end{align*}
+
+  However, $p_t S_t$ will be a constant since
+
+  \begin{align*}
+    p_t S_t &= \frac{2}{1 - \eta} \frac{PfC_t}{S_t} S_t \\
+    &= \frac{2}{1 - \eta} PfC_t
+  \end{align*}
+
+  and since $PfC_t = \bar{PfC}$ then
+
+  $$p_t S_t = \bar{pS} = \frac{2}{1 - \eta} \bar{PfC}$$
+
+  Assume that we'd like to achieve a period-by-period return of $r$.
+
+  \begin{align*}
+    (1 + r) &= \frac{p_{t+1} (S_{t+1} + B_{t+1})}{p_t S_t} \\
+    (1 + r) &= \frac{p_{t+1} S_{t+1} + X_{t+1}}{p_t S_t} \\
+    (1 + r) &= \frac{\frac{2}{1 - \eta} \frac{PfC_{t+1}}{S_{t+1}} S_{t+1} + X_{t+1}}{\frac{2}{1 - \eta} \frac{PfC_{t}}{S_t} S_t} \\
+    (1 + r) PfC_{t} &= PfC_{t+1} + \frac{1 - \eta}{2} X_{t+1} \\
+  \end{align*}
+
+  In the SS this means that
+
+  \begin{align*}
+    (1 + r) \bar{PfC} &= \bar{PfC} + \frac{1 - \eta}{2} \bar{X} \\
+    &\rightarrow \bar{X} = \frac{2 \bar{PfC}}{1 - \eta} r
+  \end{align*}
+
+  If we assume that $\bar{PfC} = \frac{1}{2} \bar{M}$ and that there is full participation then this
+  reduces to $\bar{X} = r \bar{M}$ which means that the tax rate is given by,
+
+  $$\bar{\tau} \equiv \frac{\bar{X}}{\bar{M}} = r$$
+
+
+\section{Deterministic Growth} \label{sec:dg}
+
+  We now consider how to implement taxes in a world where the system margin grows over time
+  according to a deterministic process. In particular, we assume that margin follows
+
+  $$M_{t+1} = M_{t} + g M_{t} \left(1 + \frac{M_{t}}{\bar{M}} \right)$$
+
+  This process, known as logistic growth, generates ``S-shaped'' growth. We can see the implications
+  that this process has for the system margin in Figure XYZ.
+
+  We assume that we'd like to charge the minimum amount of taxes while maintaining the system's
+  incorruptibility. This produces the following program:
+
+  \begin{align*}
+    \min_{T_t} &E \left[ \sum_{t=0} \left(\frac{1}{1 + r} \right)^t T_t \right] \\
+    &\text{subject to} \\
+    PfC_t &\leq \frac{1}{2} P_t S_t = \frac{1}{2} E \left[ \sum_{s=0} \left(\frac{1}{1 + r}\right)^s  X_{t + s} \right] \\
+    X_{t} &= T_t \\
+    0 &\leq T_t \\
+    T_t &\leq \bar{\tau} \bar{M} \\
+    M_{t+1} &= M_{t} + g M_{t} \left(1 + \frac{M_t}{\bar{M}} \right)
+  \end{align*}
+
+  The way that we solve this is that we start at $s$ such that $M_s \approx \bar{M}$. At this
+  point, we have arrived in the steady state and the tax rate implemented will be
+  $T_t = \bar{\tau} M_t$. We can then step back by one period to $t = s - 1$ and compute what the
+  required $X_t$ in that period would be. We can proceed to step this back until we reach our
+  initial condition of $M_0$ which traces out a path of tax collections. This process generates
+  a sequence of taxes that look like Figure XYZ.
+
+  The interesting observation that corresponds to this process is that the tax rates can start
+  relatively low and stay low for a prolonger period of time simply because people know that there
+  will be growth in the system --- This future promise of increased buybacks in the future is
+  enough to secure the system while it is small. However, this depends drastically on the fact that
+  margin grows deterministically and, in practice, the future growth may not be as certain as
+  predicted in this model (but we only need that the marginal token holder believes in the growth).
+
+
+\section{Stochastic Steady State} \label{sec:sss}
+
+  We
+
+
+\section{Stochastic Growth} \label{sec:sg}
+
+
+\end{document}
