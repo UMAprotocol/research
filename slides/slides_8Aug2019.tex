@@ -1,0 +1,186 @@
+\documentclass[10pt]{beamer}
+
+  % Math Packages
+  \usepackage{amsmath}
+  \usepackage{amsthm}
+  \usepackage{mathtools}
+
+  % Graphics Packages
+  \usepackage{graphicx}
+  \usepackage{pgf}
+  \usepackage[export]{adjustbox}
+
+  % Colors
+  \definecolor{umared}{RGB}{255,74,74}
+  \definecolor{mygray}{RGB}{66,66,66}
+
+  % Theme Settings
+  \usetheme{metropolis}
+
+  \setbeamercolor{normal text}{fg=mygray}
+  \setbeamercolor{alerted text}{fg=umared}
+  \setbeamercolor{title text}{fg=mygray}
+  \setbeamercolor{title separator}{fg=umared}
+  \setbeamercolor{progress bar}{fg=umared}
+  \setbeamercolor{frametitle}{bg=umared}
+
+\title{Oracle Taxation Theory}
+\logo{
+  \makebox[0.13\paperwidth]{\includegraphics[width=1.5cm,keepaspectratio]{Uma_Logo.png} \hfill}
+}
+\date[]{\today}
+
+\begin{document}
+
+% Title Slide
+\begin{frame}
+  \titlepage
+\end{frame}
+
+
+% --------------------------------------- %
+% Goal
+% --------------------------------------- %
+\section{Goal Refresher}
+
+  \begin{frame} \frametitle{$PfC < CoC$}
+
+    The purpose of the taxation ($T_t$) and buyback policies ($X_t$) is to ensure that the price of
+    the token prevents 51\% attacks. Formally, we want
+
+    $$\underbrace{\gamma M_t}_{\text{Profit from Corruption}} < \underbrace{\frac{1}{2} p_t S_t}_{\text{Cost of Corruption}}$$
+
+    This can be controlled by system because, if priced correctly, the token market cap should be
+
+    $$p_t S_t = E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right]$$
+
+  \end{frame}
+
+% --------------------------------------- %
+% Overview of Previous Material
+% --------------------------------------- %
+\section{Last Time}
+
+  \begin{frame} \frametitle{Tax rates in deterministic world}
+
+    We learned that, in a deterministic world, that tax rates
+
+    \begin{itemize}
+      \item Must eventually be roughly the same as the interest that we would like token holders to
+            earn
+      \item If people believe that the system margin will grow, then we can support relatively low
+            taxes for a prolonged period of time
+    \end{itemize}
+
+  \end{frame}
+
+% --------------------------------------- %
+% What are we learning about today
+% --------------------------------------- %
+\section{Stochastic Model}
+
+  \begin{frame} \frametitle{Why do we need stochastic?}
+
+    In the deterministic model, there are no unexpected fluctuations or growth, and thus no risk
+
+    In a model where margin grows without risk, there's no need to have a rainy day fund or to
+    provide any other form of self-insurance
+
+    In reality, we will need to ensure that there are funds to intevene and influence prices to
+    ensure that $PfC < CoC$ --- To think about the right way to intervene, we need a stochastic
+    framework
+
+  \end{frame}
+
+  \begin{frame} \frametitle{Framework}
+
+    Margin, $M_t$ now follows a stochastic Markov process rather than a deterministic process
+
+    $$M_{t+1} = f(M_t, \varepsilon_{t+1})$$
+
+    Our goal will be to choose the ``right'' sequence of taxes to impose, $\{T_t\}$, and buybacks to
+    make, $\{X_t\}$
+
+  \end{frame}
+
+  \begin{frame} \frametitle{What does ``right'' mean?}
+
+    We have several, potentially competing goals to achieve with $\{T_t\}$ and $\{X_t\}$
+
+    \vspace{0.25cm}
+
+    \begin{itemize}
+      \item First of all, need to ensure $PfC < CoC$
+      \item Minimize the tax costs and volatility
+      \item Minimize the cost of buyback policy by minimizing $\{X_t\}$ (do we also care about
+            volatility here too?)
+    \end{itemize}
+
+  \end{frame}
+
+  \begin{frame} \frametitle{Two steps to find policies}
+
+    \begin{enumerate}
+      \item Find the buyback policy, $X^*(M_t)$, which solves
+        \begin{align*}
+          \min_{\{X_t\}} \quad &E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right] \\
+          &\text{Subject to } \\
+          &PfC < CoC
+        \end{align*}
+      \item Once we have a buyback policy, we want to determine how to finance the buybacks
+        \begin{align*}
+          \min_{\{T_t\}} \quad &E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s \frac{1}{2} T_t^2 \right] \\
+          &\text{Subject to } \\
+          &T_t + (1 + r) D_t \geq D_{t+1} + X_t^*(M_t)
+        \end{align*}
+    \end{enumerate}
+
+  \end{frame}
+
+  \begin{frame} \frametitle{Determine the Buybacks}
+
+    In this context, a \textit{Markov Perfect Strategy} is a buyback policy,
+    $X^*(M_t) : M \rightarrow \mathcal{R}$ which is time-invariant.
+
+    \vspace{0.25cm}
+
+    Effectively, the buyback policy must only be a function of current margin, $M_t$.
+
+    \vspace{0.25cm}
+
+    \textbf{Proposition}: There exists a MP strategy $X^*(M_t)$ such that there is no function
+    $X^*(M^t)$ which achieves a lower cost of buybacks
+
+  \end{frame}
+
+  \begin{frame} \frametitle{Determine the Buybacks}
+
+    Buyback function will satisfy
+
+    $$2 \gamma M_t = \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_{t+1}) | M_t \right]$$
+
+    If $M_t$ follows a discrete Markov chain, can write $X^*(M)$ as
+
+    $$X = 2 \gamma \left(I - \frac{1}{1+r} P \right) \begin{bmatrix} M_1 \\ M_2 \\ \vdots \\ M_N \end{bmatrix}$$
+
+  \end{frame}
+
+  \begin{frame} \frametitle{Two cases}
+
+    \textbf{Case 1: Persistent Margin}
+
+    In the case of relatively persistent margin, the buyback levels are relatively inelastic and do
+    not move much relative to margin --- In one numerical example, for a \$100,000 change in margin
+    the buybacks only change by about \$5,000.
+
+    \vspace{0.5cm}
+
+    \textbf{Case 2: Transitory Margin}
+
+    In the case of transitory (not persistent) margin, the buyback levels respond much more
+    strongly --- In one numerical example, for a \$100,000 change in margin the buybacks change by
+    about \$75,000.
+
+  \end{frame}
+
+\end{document}
