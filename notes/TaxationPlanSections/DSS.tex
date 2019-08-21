@@ -1,0 +1,45 @@
+%!TEX root = ../TaxationPlan.tex
+
+In this version of the model, we will consider the system margin being constant over time. However,
+it is important to note that not all of the variables will be constant in the steady state because
+there is potentially non-zero inflation in the number of outstanding tokens. The number of tokens in
+the economy follows
+
+\begin{align*}
+  S_{t+1} &= (1 + \pi) (S_t - B_t)
+\end{align*}
+
+Also, recall from \ref{sec:price_required} that the price that ensures $PfC < CoC$ is given by
+$p_t \geq \frac{2}{1 - \eta} \frac{PfC_t}{S_t}$.
+
+The token market cap, $p_t S_t$, will be a constant since
+
+\begin{align*}
+  p_t S_t &= \frac{2}{1 - \eta} \frac{PfC_t}{S_t} S_t \\
+  &= \frac{2}{1 - \eta} PfC_t
+\end{align*}
+
+and since $PfC_t = \bar{PfC} = \gamma \bar{M}$ then
+
+$$p_t S_t = \bar{pS} = \frac{2}{1 - \eta} \gamma \bar{M}$$
+
+Assume that we'd like to achieve a period-by-period return of $r$.
+
+\begin{align*}
+  (1 + r) &= \frac{p_{t+1} (S_{t+1} + B_{t+1})}{p_t S_t} \\
+  (1 + r) &= \frac{p_{t+1} S_{t+1} + X_{t+1}}{p_t S_t} \\
+  (1 + r) &= \frac{\frac{2}{1 - \eta} \frac{PfC_{t+1}}{S_{t+1}} S_{t+1} + X_{t+1}}{\frac{2}{1 - \eta} \frac{PfC_{t}}{S_t} S_t} \\
+  (1 + r) PfC_{t} &= PfC_{t+1} + \frac{1 - \eta}{2} X_{t+1} \\
+\end{align*}
+
+In the SS this means that
+
+\begin{align*}
+  (1 + r) \bar{PfC} &= \bar{PfC} + \frac{1 - \eta}{2} \bar{X} \\
+  &\rightarrow \bar{X} = \frac{2 \bar{PfC}}{1 - \eta} r
+\end{align*}
+
+If we assume that $\bar{PfC} = \frac{1}{2} \bar{M}$ and that there is full participation then this
+reduces to $\bar{X} = r \bar{M}$ which means that the tax rate is given by,
+
+$$\bar{\tau} \equiv \frac{\bar{X}}{\bar{M}} = r$$

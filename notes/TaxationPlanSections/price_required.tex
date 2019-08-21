@@ -1,0 +1,14 @@
+%!TEX root = ../TaxationPlan.tex
+
+In this section we determine what price is needed in a generic period to ensure that $PfC < CoC$.
+
+We begin with the inequality
+
+\begin{align*}
+  PfC_t \leq CoC_t \rightarrow PfC_t \leq \frac{1 - \eta}{2} p_t S_t \\
+  \rightarrow p_t \geq \frac{2}{1 - \eta} \frac{PfC_t}{S_t}
+  \rightarrow p_t \geq \frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}
+\end{align*}
+
+Thus as long as the price of a token is higher than $\frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}$,
+then it is not profitable to corrupt the system.

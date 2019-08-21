@@ -1,0 +1,71 @@
+%!TEX root = ../TaxationPlan.tex
+
+In the deterministic model, there were no unexpected fluctuations or growth, and thus there was no
+risk. Additionally, since margin was either constant or always growing, there was no reason to save
+any of the margin collected to pay future taxes thus the amount taxed and the amount used for
+buybacks were the same. In the stochastic analysis, this will cease to be true. We will now have to
+consider how to structure the buybacks, $X_t$, and taxes, $T_t$, separately.
+
+We will assume that margin follows a Markov process,
+
+$$M_{t+1} = f(M_t, \varepsilon_{t+1})$$
+
+Our objective will be to choose $\{(X_t, T_t)\}_{t=0}^{\infty}$ to optimize certain goals. In this
+document, we will focus on minimizing the present discounted value of payouts to token holders and
+minimizing the variance in the tax rates.
+
+\textbf{Two Part Solution}
+
+One way that we might consider solving this problem, that should provide a nearly optimal solution
+is to break it into two parts:
+
+\begin{enumerate}
+  \item Solve for the minimum cost policy function $X^*(M^t)$
+  \item Find the minimum variance tax function $T^*(M^t)$ such that we can fund any sequence of
+        buybacks, $\{X(M^t)\}$, without debt
+\end{enumerate}
+
+Formally, the first step is the solution to
+
+\begin{align*}
+  \min_{\{X_t\}} \; & E \left[ \sum_{t} \left(\frac{1}{1 + r} \right) X_t \right] \\
+  &\text{subject to} \\
+  \quad & 2 PfC_t \leq E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right] \quad (\lambda_t)
+\end{align*}
+
+If we add the restriction that the policy is Markov, $X^*(M^t) = X^*(M_t)$, then we know
+
+\begin{align*}
+  2 \gamma M_t &\leq E \left[ \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s X^*(M^s) \right] \\
+  &\leq \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_s) | M_t \right]
+\end{align*}
+
+It is easy to show that under the optimal solution that this inequality will hold with equality. If
+we also assume that the process is a discrete Markov chain with transition matrix, $P$, then this
+reduces to
+
+\begin{align*}
+  2 \gamma M_t &= \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_s) | M_t \right] \\
+  2 \gamma \vec{M} &= \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s P^s \vec{X} \\
+  &\dots \\
+  \vec{X} &= 2 \gamma \left(I - \frac{1}{1 + r} P \right) \vec{M}
+\end{align*}
+
+We can then formalize the second step with
+
+\begin{align*}
+  \min_{\{T_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t T_t^2 \right] \\
+  &\text{subject to} \\
+  T_t + (1 + r) D_t &\geq D_{t+1} + X^*_t \quad (\mu_t) \\
+  D_t &\geq 0
+\end{align*}
+
+We can write this recursively as
+
+\begin{align*}
+  V(D_t, M_t) &= \max_{T_t} \; T_t^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
+  &\text{Subject to} \\
+  &D_{t+1} + X_{t} \leq (1 + r) D_t + T_t
+\end{align*}
+
+\subsubsection{Numerical Example}
