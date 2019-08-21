@@ -31,10 +31,10 @@ def required_tax_rate_margin_ss(m, votes_per_day):
 @jit(nopython=True)
 def required_annualized_tax_rate_margin_ss(m, votes_per_day):
 
-    r = required_tax_rate_margin_ss(m, votes_per_day)
-    r_annual = (1.0 + r)**(365*votes_per_day) - 1.0
+    tau = required_tax_rate_margin_ss(m, votes_per_day)
+    tau_annual = (1.0 + tau)**(365*votes_per_day) - 1.0
 
-    return r_annual
+    return tau_annual
 
 
 @jit(nopython=True)
