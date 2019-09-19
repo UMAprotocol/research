@@ -47,7 +47,13 @@
   We find that
 
   \begin{enumerate}
-    \item Finding 1
+    \item The executed buybacks at high levels of margin are typically higher than buybacks at lower
+          levels of margin.
+    \item The expectation of growth in margin secured by the DVM coupled with the previous finding
+          means that at low levels of margin, the system can be secured simply through the promise
+          of future buybacks. Depending on margin growth beliefs and realizations of margin growth,
+          this results in the system being secured for a significant period of time (10+ years)
+          without actually being required to implement buybacks.
     \item Finding 2
     \item Finding 3
   \end{enumerate}
@@ -83,7 +89,7 @@
     \item $D_t$ denotes the dollar value of funds held in the ``rainy day fund''
     \item $M_t$ denotes total dollar value of margin in system
     \item $\tau_t$ denotes the tax rate on the system
-    \item $p_t$ denotes the price of a single vote token
+    \item $p_t$ denotes the price (in dollars) of a single vote token
     \item $S_t$ denotes the number of vote tokens outstanding
     \item $T_t \equiv \tau_t M_t$ denotes total tax levied on system
     \item $X_t \equiv B_t p_t$ denotes the dollar value of expenditure on buybacks
@@ -96,32 +102,40 @@
     \item $\eta$ is percent of people who do not vote
     \item $\gamma$ the fraction of margin seized if DVM is corrupted
     \item $\pi$ is the inflation rate used to reward voters
-    \item $r$ is the risk-free return on other capital
+    \item $r$ is the risk-free return on other investments
   \end{itemize}
 
-  The subsections that follow are
+  We can expand and rearrange the $PfC < CoC$ inequality to express the price needed to secure the
+  system.
+
+  \begin{align*}
+    PfC_t &\leq CoC_t \\
+    &\Rightarrow \gamma M_t \leq \frac{1 - \eta}{2} p_t S_t \\
+    &\Rightarrow p_t \geq \frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}
+    &\Rightarrow p_t \geq \frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}
+  \end{align*}
+
+  Thus as long as the price of a token is higher than $\frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}$,
+  then it is not profitable to corrupt the system.
+
+  The remaining analysis is done in pieces. We start with the simplest possible model and slowly
+  add additional features to deepen our insights. We briefly describe these sections:
 
   \begin{itemize}
-    \item Section \ref{sec:price_required} demonstrates the price that is required to prevent the
-          system from being corrupted in any given period.
     \item Section \ref{sec:dss} asks the question, ``In a deterministic world in which the system
           margin has reached a steady level of margin, what is the lowest tax rate we can implement
-          that ensure incorruptibility?'' We find that the lowest tax rate is the same as the return
-          that we would like the tokens to offer.
+          that ensure incorruptibility?'' We find that the lowest tax rate achievable is the same
+          as the return that we would like the tokens to offer.
     \item Section \ref{sec:dg} asks the question, ``If we knew exactly how margin would grow
-          could charge in each period and maintain the incorruptibility gurantee starting today and
-          going into the future, what is the minimum amount of taxes that we could impose at each
-          period?'' We find that the rate of change in the tax rates is similar to the rate of
-          change of the margin held in the system. We find that, under a particular
-          parameterization, we can achieve a zero tax rate for almost 20 years before being required
-          to increase taxes to steady state amounts.
-    \item Section \ref{sec:sss} analyzes a model in which margin follows a stationary stochastic
+          in the future, what is the minimum amount of taxes that we could impose at each
+          period while maintaining the $PfC < CoC$ guarantee?'' We find that the rate of change in
+          the tax rates is similar to the rate of change of the margin held in the system. We find
+          that, under a particular parameterization, we can achieve a zero tax rate for almost 20
+          years before being required to increase taxes to steady state amounts.
+    \item Section \ref{sec:sm} analyzes a model in which margin follows a stationary stochastic
           process and thinks about the right way to smooth taxes while making sure that payments
           can be made to ensure system is incorruptible.''
   \end{itemize}
-
-  \subsection{Price required for $PfC < CoC$} \label{sec:price_required}
-    \input{./TaxationPlanSections/price_required.tex}
 
   \subsection{Deterministic Steady State} \label{sec:dss}
     \input{./TaxationPlanSections/DSS.tex}
@@ -129,10 +143,15 @@
   \subsection{Determisitic Growth} \label{sec:dg}
     \input{./TaxationPlanSections/DG.tex}
 
-  \subsection{Stochastic Steady State} \label{sec:sss}
-    \input{./TaxationPlanSections/SSS.tex}
+  \subsection{Stochastic Markov} \label{sec:sm}
+    \input{./TaxationPlanSections/SM.tex}
 
-  \subsection{Stochastic Growth} \label{sec:sg}
+\appendix
 
+\section{Negative Buybacks} \label{app:nbb}
+  \input{./TaxationPlanSections/app_negative_buybacks.tex}
+
+\section{Discrete Markov Approximation to Logistic Growth} \label{app:dmc}
+  \input{./TaxationPlanSections/app_dmc_approx.tex}
 
 \end{document}

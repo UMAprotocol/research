@@ -1,0 +1,180 @@
+%!TEX root = ../TaxationPlan.tex
+
+In the previous two models discussed there was no sense in which future margin was unknown.
+Obviously in practice, we have significant uncertainty about how margin will evolve and we believe
+it is important to incorporate this uncertainty into the model. We do this by assuming that margin
+will evolve according to a Markov process.
+
+One additional difference that will show up in this section is a separation between the amount of
+taxes collected, $T_t$, and the size of the buyback, $X_t$. In the deterministic model, there were
+no unexpected fluctuations or growth and margin was either constant or always growing. These two
+features made it unnecessary to store some of the taxes collected today to pay for future buybacks.
+
+We will assume that margin follows a Markov process, that is, that tomorrow's margin only depends on
+what margin was today.
+
+$$M_{t+1} = f(M_t, \varepsilon_{t+1})$$
+
+A Markov process like this can be quite general and can special case both of our previous sections.
+The only difference is that now, margin will begin low and then will (potentially) grow to higher
+levels with some uncertainty about the path it takes to get there.
+
+Our objective will be to choose $\{(X_t, T_t)\}_{t=0}^{\infty}$ to optimize certain goals. In this
+document, we will focus on minimizing the present discounted value of payouts to token holders and
+keeping tax rates at a low and consistent level\footnote{We do this by using a quadratic punishment
+function which punishes any deviation of the tax rate from 0 quadratically. The quadratic structure
+ensures that large taxes are penalized more heavily than smaller taxes --- Under certain
+assumptions, such a structure often produces a solution in which taxes tomorrow are the same as the
+taxes today in expectation}.
+
+\textbf{Two Part Solution}
+
+We will approach this problem by breaking it into two parts:
+
+\begin{enumerate}
+  \item Solve for the minimum cost policy function $X^*(M^t)$
+  \item Find the tax function $T^*(M^t)$ that meets our objective of low and non-volatile taxes such
+        that we can fund any sequence of buybacks, $\{X(M^t)\}$, without debt
+\end{enumerate}
+
+\textit{Buyback Policy}
+
+In the discussion that follows, we will focus on the case in which there are no negative buybacks.
+There are a few interesting features associated with the unconstrained case, but we relegate their
+discussion to Appendix \ref{app:nbb}. The constrained program can be written as
+
+\begin{align*}
+  \min_{\{X_t\}} \; & E \left[ \sum_{t} \left(\frac{1}{1 + r} \right) X_t \right] \\
+  &\text{subject to} \\
+  \quad & 2 PfC_t \leq E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right] \quad (\lambda_t) \\
+  \quad & X_t \geq 0 (\mu_t)
+\end{align*}
+
+If we add the restriction that the policy is Markov, $X^*(M^t) = X^*(M_t)$, then we know
+
+\begin{align*}
+  2 PfC_t &\leq E \left[ \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s X^*(M^s) \right] \\
+  &\leq \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_s) | M_t \right]
+\end{align*}
+
+Finally, if we assume that the margin process, $\{M_t\}$, follows a discrete Markov chain with $N$
+states, then the objective function can be simplified to
+
+\begin{align*}
+  &E \left[ \sum_{t} \left(\frac{1}{1 + r} \right) X_i(t) \right] \\
+  &\Rightarrow \pi_0 (I - \frac{1}{1+r}P)^{-1} \vec{X}
+\end{align*}
+
+where $\pi_0$ is a vector that denotes the initial distribution across the states of margin and
+$\vec{X} \equiv \{X_1, \dots, X_i, \dots, X_N\}$ denotes a buyback for each of the margin states.
+Our program can then be written as a linear program:
+
+\begin{align*}
+  \min_{\vec{X}} \; & \pi_0 (I - \frac{1}{1+r}P)^{-1} \vec{X}
+  &\text{subject to} \\
+  \quad & 2 PfC_i \leq (I - \frac{1}{1 + r}P)^{-1} X_i \quad (\forall i) \\
+  \quad & X_i \geq 0 \quad (\forall i)
+\end{align*}
+
+Given the model parameters, we can solve this program with any standard linear program solver.
+
+\textit{Tax Policy}
+
+We can then formalize the second step with
+
+\begin{align*}
+  \min_{\{T_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t T_t^2 \right] \\
+  &\text{subject to} \\
+  T_t + (1 + r) D_t &\geq D_{t+1} + X^*_t \quad (\mu_t) \\
+  D_t &\geq 0
+\end{align*}
+
+where $D_t$ denotes the amount that is currently stored in the rainy day fund. We can write this
+recursively as
+
+\begin{align*}
+  V(D_t, M_t) &= \max_{T_t} \; T_t^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
+  &\text{Subject to} \\
+  &D_{t+1} + X_{t} \leq (1 + r) D_t + T_t \\
+  &D_t \geq 0
+\end{align*}
+
+Although most quadratic problems have near analytical solutions, we cannot exploit them in this case
+due to no borrowing inequality constraint on the rainy day fund because it adds a non-linearity to
+the problem. We can still compute a solution to this recursive program using a "brute-force" style
+method called value function iteration.
+
+The output of such a solution will be a rule, $T^*(D_t, M_t)$, which expresses the tax that should
+be imposed as a function of the amount currently stored in the rainy day fund and the current margin
+in the system. Additionally, this "policy function" will imply a law of motion for the size of the
+rainy day fund
+
+\textbf{Numerical Example}
+
+In this subsection, we describe a single numerical example. This will help us in the following
+subsection when we discuss the insights that come out of this model.
+
+There are some issues that arise when we set too fine of a time-scale, so for now we focus on a
+montly scale. We set most of the parameters to our ``standard'' assumptions:
+
+\begin{itemize}
+  \item $\chi = \frac{1}{2}$: Corrupted with half of the votes
+  \item $\eta = 0$: Full participation
+  \item $\gamma = \frac{1}{2}$: Half of the margin is vulnerable to being stolen
+  \item $r = 0.0021$: Monthly interest rate which annualizes to about 2.5\%
+\end{itemize}
+
+The only remaining question is how to pick our Markov process for $M_t$. We use a discrete Markov
+approximation of the Logistic Growth process with some added disaster risk\footnote{When we say
+disaster risk here, we mean that there's an absorbing state with margin at 0 and there's some
+probability that the process reaches that state with positive probability}. We describe how we
+generate this approximation in Appendix \ref{app:dmc} and leave it to the interested reader to
+investigate further. We plot many possible histories of this process below to help with the
+visualization of the implied outcomes associated with this process.
+
+\begin{center}
+  \begin{figure}[H]
+    \scalebox{0.65}{\includegraphics{./TaxationPlanImages/StochasticMarginGrowth.png}}
+    \label{fig:sm_stochastic_margin_growth}
+  \end{figure}
+\end{center}
+
+We first illustrate how the buybacks vary by the current level of margin. Note that this is very
+similar to what we observed in the deterministic case --- At low levels of margin, we can support
+a policy of zero buybacks because there is positive probability that the margin will grow to a point
+where there will be relatively large buybacks. In the image below, we annualize the monthly buybacks
+as a percent of margin
+
+\begin{center}
+  \begin{figure}[H]
+    \scalebox{0.65}{\includegraphics{./TaxationPlanImages/StochasticBuybacks.png}}
+    \label{fig:sm_stochastic_buybacks}
+  \end{figure}
+\end{center}
+
+We now demonstrate how taxes vary by the status of the rainy day fund and the current margin using
+a heatmap. Current margin increases along the x-axis, the rainy day fund increases along the y-axis,
+and the color of the image at a point demonstrates how high taxes are at that point.
+
+% TODO: Add tax figure
+
+\textbf{Tax Insights}
+
+In this subsection, we discuss some of the findings associated with our numerical examples:
+
+\textit{If there are no rainy day funds, taxes will typically reflect full buyback amount}
+
+This point follows almost immediately from the fact that we have chosen to disallow any borrowing by
+the DVM. If the rainy day fund, $D_t$, is currently at 0 then
+
+\begin{align*}
+  D_{t+1} + X_{t} \leq (1 + r)*D_t + T_t \\
+  D_{t+1} + X_{t} \leq T_t
+\end{align*}
+
+The question is whether we will raise extra taxes to not experience the same state tomorrow. It
+turns out for most of the possible states of margin, the optimal response is to set $T_t = X_t$ with
+the result being $D_{t+1} = 0$. This means that if the rainy day fund ever arrives at 0 when there
+are positive buybacks, that it might be hard to accumulate a rainy day fund
+
+\textit{}

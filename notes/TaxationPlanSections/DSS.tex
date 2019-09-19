@@ -1,15 +1,17 @@
 %!TEX root = ../TaxationPlan.tex
 
-In this version of the model, we will consider the system margin being constant over time. However,
-it is important to note that not all of the variables will be constant in the steady state because
-there is potentially non-zero inflation in the number of outstanding tokens. The number of tokens in
-the economy follows
+In this version of the model, we will consider the system margin being constant over time, i.e.
+$M_t = \bar{M}$ $\forall t$. However, it is important to note that not all of the variables will be
+constant in the steady state because there is potentially non-zero inflation in the number of
+outstanding tokens.
+
+The total number of tokens follows
 
 \begin{align*}
   S_{t+1} &= (1 + \pi) (S_t - B_t)
 \end{align*}
 
-Also, recall from \ref{sec:price_required} that the price that ensures $PfC < CoC$ is given by
+Also, recall that the price that ensures $PfC < CoC$ is given by
 $p_t \geq \frac{2}{1 - \eta} \frac{PfC_t}{S_t}$.
 
 The token market cap, $p_t S_t$, will be a constant since
@@ -17,13 +19,11 @@ The token market cap, $p_t S_t$, will be a constant since
 \begin{align*}
   p_t S_t &= \frac{2}{1 - \eta} \frac{PfC_t}{S_t} S_t \\
   &= \frac{2}{1 - \eta} PfC_t
+  &= \frac{2}{1 - \eta} \gamma M_t
+  &= \frac{2}{1 - \eta} \gamma \bar{M}
 \end{align*}
 
-and since $PfC_t = \bar{PfC} = \gamma \bar{M}$ then
-
-$$p_t S_t = \bar{pS} = \frac{2}{1 - \eta} \gamma \bar{M}$$
-
-Assume that we'd like to achieve a period-by-period return of $r$.
+Assume that we'd like to achieve an aggregate period-by-period return of $r$ to token holders.
 
 \begin{align*}
   (1 + r) &= \frac{p_{t+1} (S_{t+1} + B_{t+1})}{p_t S_t} \\
@@ -43,3 +43,17 @@ If we assume that $\bar{PfC} = \frac{1}{2} \bar{M}$ and that there is full parti
 reduces to $\bar{X} = r \bar{M}$ which means that the tax rate is given by,
 
 $$\bar{\tau} \equiv \frac{\bar{X}}{\bar{M}} = r$$
+
+The question of how high taxes should be in the steady state depend on what one believes about the
+return that token holders are willing to accept on their tokens.
+
+If the following three things were true,
+
+\begin{enumerate}
+  \item Blockchains become a widely accepted and used technology
+  \item UMA was core to decentralized finance
+  \item People were confident that UMA would continue to be a core component of decentralized finance
+\end{enumerate}
+
+then it is feasible that token holders would accept interest rates near the risk-free rate --- This
+would likely translate into a required annualized tax rate of less than 5\% of margin.

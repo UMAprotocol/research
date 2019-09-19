@@ -1,0 +1,69 @@
+%!TEX root = ../TaxationPlan.tex
+
+\textbf{Theory}
+
+In this appendix section, we return to the problem of finding a minimum cost buyback policy.
+However, we will no longer impose a non-negativity constraint. The modified mathematical program
+becomes
+
+\begin{align*}
+  \min_{\{X_t\}} \; & E \left[ \sum_{t} \left(\frac{1}{1 + r} \right) X_t \right] \\
+  &\text{subject to} \\
+  \quad & 2 PfC_t \leq E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right] \quad (\lambda_t)
+\end{align*}
+
+We will continue to focus on Markov policies, $X^*(M^t) = X^*(M_t)$, so, as before, we know:
+
+\begin{align*}
+  2 \gamma M_t &\leq E \left[ \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s X^*(M^s) \right] \\
+  &\leq \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_s) | M_t \right]
+\end{align*}
+
+In the discrete Markov chain case (where $P$ denotes the Markov transition matrix), then this
+reduces to:
+
+\begin{align*}
+  2 \gamma M_t &= \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s E \left[X^*(M_s) | M_t \right] \\
+  2 \gamma \vec{M} &= \sum_{s=0}^{\infty} \left( \frac{1}{1+r} \right)^s P^s \vec{X} \\
+  &\dots \\
+  \vec{X} &= 2 \gamma \left(I - \frac{1}{1 + r} P \right) \vec{M}
+\end{align*}
+
+\textbf{Interpretation}
+
+For certain parameterizations, it is optimal to have periods of negative buybacks ($X_t < 0$). We
+discuss how this should be interpreted and propose a potential mechanism to implement negative
+buybacks.
+
+Consider the process that determines the number of tokens at a given time:
+
+\begin{align*}
+  S_{t+1} &= \pi (S_t - B_t) \\
+  p_t S_{t+1} &= \pi (p_t S_t - X_t) \\
+  X_t &= p_t \frac{\pi S_t - S_{t+1}}{\pi}
+\end{align*}
+
+Thus if $X_t < 0$ then $S_{t+1} > \pi S_t$
+
+\begin{align*}
+  S_{t+1} > pi S_t \\
+  \pi (S_t - B_t) > \pi S_t \\
+  \rightarrow B_t < 0
+\end{align*}
+
+The negative buybacks mean that we need to be increase the supply of tokens by more than the typical
+inflation rate. One generic mechanism that would allow for positive and negative buybacks is simply
+a period-by-period auction.
+
+\begin{itemize}
+  \item If $B_t > 0$ then the DVM performs an auction and allows token holders to name a price at
+        which they would be willing to sell a certain number of their tokens. It then uses $X_t$
+        dollars from the rainy day fund to purchase the tokens from these individuals.
+  \item If $B_t < 0$ then the DVM performs an auction to sell off newly minted tokens. It allows
+        individuals to mark a price at which they would be willing to purchase tokens and collects
+        $X_t$ dollars for the rainy day fund by selling to the individuals who value the tokens
+        the most.
+\end{itemize}
+
+An additional benefit of this process is that it helps ensure that tokens stay in the hands of those
+who value them most which provides additional protections for the DVM.
