@@ -1,6 +1,6 @@
+using CuArrays
 using Distributions
 using GLPK
-using Interpolations
 using JuMP
 using LinearAlgebra
 using Parameters
@@ -68,79 +68,75 @@ function find_tax_policy(
     @unpack γ, r, M = model
     nM = length(M.state_values)
 
-    # Create a savings grid
+    # Create a savings grid and put copy on GPU
     D = range(0.0, maximum(M.state_values)/3.0, length=nD)
+    # D_cuda = CuArrays.cu(D)
 
     # Allocate space for policy and value functions
-    iDstar = zeros(Int, nD, nM)
-    Tstar = zeros(nD, nM)
-    Vstar = zeros(nD, nM)
-    Vhoward = copy(Vstar)
-    Vold = copy(Vstar)
+    iDstar = zeros(Int, nD, nM)  # (D_t x M_t)
+    Tstar = zeros(nD, nM)  # (D_t x M_t)
+    Vstar = zeros(nD, nM)  # (D_t x M_t)
+    Vhoward = copy(Vstar)  # (D_t x M_t)
+    Vold = copy(Vstar)  # (D_t x M_t)
+    EV = Vold * model.M.p'  # (D_tp1 x M_t)
 
     dist, iter = 10.0, 0
     while (dist > tol) && (iter < maxiter)
 
+        # Compute expected values up front (D_tp1 x M_t)
+        EV .= Vold * model.M.p'
+
         # Iterate over states and find new new policies
-        for iM in 1:nM
-            M_t = M.state_values[iM]
+        Threads.@threads for iM in 1:nM
+            # Get M and X
+            M_t = model.M.state_values[iM]
+            X_t = Xstar[iM]
 
-            for iD in 1:nD
-                # Probability of each new state
-                p_iM = M.p[iM, :]
+            # Get a particular column of the EV_m matrix and store in GPU
+            # EV_m_cuda = CuArrays.cu(EV[:, iM])
+            EV_m = EV[:, iM]
 
-                # Choose the best savings for tomorrow
-                _iDstar = 0
-                _Tstar = 0.0
-                _Vstar = 1e8
-                for iDtp1 in 1:nD
-                    # Budget constraint tells us what taxes must be today
-                    _T = max(0.0, D[iDtp1] + Xstar[iM] - (1 + r)*D[iD])
+            # Compute all potential Ts for each possible choice of D_tp1 using
+            # broadcasting
+            #    T_t =           D_tp1   + X_t  -   (1 + r) D_t
+            _Ts = max.(0.0, D .+ X_t .- (1.0 + r)*D')  # (D_tp1, D_t)
+            _Vs = (_Ts .- 0.002*M_t).*(_Ts .- 0.002*M_t) .+ (1.0 / (1.0 + r)) .* reshape(EV_m, (:, 1))  # (D_tp1, D_t)
+            # _Ts_cuda = max.(0.0, D_cuda .+ X_t .- (1.0 + r)*D_cuda')  # (D_tp1, D_t)
+            # _Vs_cuda = (_Ts_cuda .- 0.002*M_t).*(_Ts_cuda .- 0.002*M_t) .+ (1.0 / (1.0 + r)) .* reshape(EV_m_cuda, (:, 1))  # (D_tp1, D_t)
 
-                    # Compute expected value of being at tomorrow with the
-                    # given savings and each possible margin level
-                    EV = 0.0
-                    for iMtp1 in 1:nM
-                        EV += p_iM[iMtp1] * Vold[iDtp1, iMtp1]
-                    end
-                    _V = (_T - 0.002*M_t)*(_T - 0.002*M_t) + (1 / (1+r))*EV
+            # Move Vs back to CPU and compute argmax for each column
+            # _Vs = Array{Float64}(_Vs_cuda)  # (D_tp1, D_t)
+            _iDstars = reshape(argmin(_Vs, dims=1), (:, 1))  # (D_tp1, D_t)
 
-                    # Update if it is better than previous -- We are minimizing
-                    # the tax squared
-                    if _V < _Vstar
-                        _iDstar = iDtp1
-                        _Tstar = _T
-                        _Vstar = _V
-                    end
-                end
-
-                # Update functions
-                iDstar[iD, iM] = _iDstar
-                Tstar[iD, iM] = _Tstar
-                Vstar[iD, iM] = _Vstar
-            end
+            # Store output in iteration arrays
+            iDstar[:, iM] = getindex.(_iDstars, 1)
+            Tstar[:, iM] = D[iDstar[:, iM]] .+ X_t .- (1.0 + r)*D  # Need to add max(0, T) here
+            Vstar[:, iM] = _Vs[_iDstars]
         end
 
         # Iterate over states and apply Howard steps
         for _hstep in 1:n_howard_steps
-            copy!(Vhoward, Vstar)
 
-            for iM in 1:nM, iD in 1:nD
-                # Probability of each new state
-                p_iM = M.p[iM, :]
+            # Compute expected values up front (D_tp1 x M_t)
+            EV .= Vstar * model.M.p'
 
-                # Get policies
-                iDtp1 = iDstar[iD, iM]
-                _T = max(0.0, D[iDtp1] + Xstar[iM] - (1 + r)*D[iD])
+            # Iterate over Ms and Ds
+            Threads.@threads for iM in 1:nM
+                # Pull out buyback
+                M_t = model.M.state_values[iM]
+                X_t = Xstar[iM]
 
-                # Compute expected value of being at tomorrow with the
-                # given savings and each possible margin level
-                EV = 0.0
-                for iMtp1 in 1:nM
-                    EV += p_iM[iMtp1] * Vhoward[iDtp1, iMtp1]
+                for (iD, D_t) in enumerate(D)
+
+                    # Optimal policy
+                    _iDtp1 = iDstar[iD, iM]
+                    _Dtp1 = D[_iDtp1]
+
+                    _T = max(0.0, _Dtp1 + X_t - (1+r)*D_t)
+                    _V = (_T - 0.002*M_t)*(_T - 0.002*M_t) + (1.0 / (1.0 + r))*EV[_iDtp1, iM]
+
+                    Vstar[iD, iM] = _V
                 end
-                Vstar[iD, iM] = _T*_T + (1 / (1+r))*EV
-
             end
         end
 
@@ -148,7 +144,7 @@ function find_tax_policy(
         iter += 1
         dist = maximum(abs, Vstar - Vold)
         copy!(Vold, Vstar)
-        if mod(iter, 25) == 0
+        if mod(iter, 5) == 0
             println("Distance is $dist at iteration $iter")
         end
     end
@@ -240,6 +236,10 @@ end
 mc = create_scurve_mc(;g=0.030, σ0=0.35, σ=0.025, nM=1500)
 model = TaxModel(0.5, 2.1e-3, mc)
 
+# Compute buyback policy
+cdp = constrained_dividend_payments(model)
+iDstar, Tstar, Xstar, D, Vstar = find_tax_policy(model, cdp; maxiter=1)
+
 # Create margin growth figure
 nsims = 150
 Random.seed!(61089)
@@ -261,9 +261,6 @@ smg_plot = plot(
     )
 )
 savefig(smg_plot, "../notes/TaxationPlanImages/StochasticMarginGrowth.png")
-
-# Compute buyback policy
-cdp = constrained_dividend_payments(model)
 
 mc_ind_sims = [simulate_indices(mc, 12*25; init=2) for i in 1:10]
 annualized_buybacks = ((1.0 .+ (cdp ./ model.M.state_values)).^12 .- 1.0) .* 100
