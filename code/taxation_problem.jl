@@ -1,4 +1,3 @@
-using CuArrays
 using Distributions
 using GLPK
 using JuMP
@@ -60,6 +59,22 @@ function unconstrained_dividend_payments(model::TaxModel)
 end
 
 
+function period_penalty(M_t, T_t, τ_target=0.00165)
+    # Compute implied tax rate
+    τ = T_t / M_t
+
+    # If tax is below that, then 0 penalty
+    out = ifelse(τ <= τ_target, 0.0, (T_t - τ_target*M_t)^2)
+    return out
+end
+
+
+function T_from_BC(model, Dt, Dtp1, Xt)
+    Tt = Dtp1 .+ Xt .- (1.0 + model.r)*Dt
+    return Tt
+end
+
+
 function find_tax_policy(
         model::TaxModel, Xstar=constrained_dividend_payments(model);
         nD::Int=600, tol::Float64=1e-6, maxiter::Int=10_000, n_howard_steps::Int=25
@@ -68,9 +83,10 @@ function find_tax_policy(
     @unpack γ, r, M = model
     nM = length(M.state_values)
 
-    # Create a savings grid and put copy on GPU
-    D = range(0.0, maximum(M.state_values)/3.0, length=nD)
-    # D_cuda = CuArrays.cu(D)
+    # Create a savings grid. We start high and end low to ensure that argmax
+    # will choose high savings when indifferent because it picks first of
+    # the mins
+    D = range(maximum(M.state_values)/3.0, 0.0, length=nD)
 
     # Allocate space for policy and value functions
     iDstar = zeros(Int, nD, nM)  # (D_t x M_t)
@@ -93,24 +109,19 @@ function find_tax_policy(
             X_t = Xstar[iM]
 
             # Get a particular column of the EV_m matrix and store in GPU
-            # EV_m_cuda = CuArrays.cu(EV[:, iM])
             EV_m = EV[:, iM]
 
             # Compute all potential Ts for each possible choice of D_tp1 using
             # broadcasting
-            #    T_t =           D_tp1   + X_t  -   (1 + r) D_t
-            _Ts = max.(0.0, D .+ X_t .- (1.0 + r)*D')  # (D_tp1, D_t)
-            _Vs = (_Ts .- 0.002*M_t).*(_Ts .- 0.002*M_t) .+ (1.0 / (1.0 + r)) .* reshape(EV_m, (:, 1))  # (D_tp1, D_t)
-            # _Ts_cuda = max.(0.0, D_cuda .+ X_t .- (1.0 + r)*D_cuda')  # (D_tp1, D_t)
-            # _Vs_cuda = (_Ts_cuda .- 0.002*M_t).*(_Ts_cuda .- 0.002*M_t) .+ (1.0 / (1.0 + r)) .* reshape(EV_m_cuda, (:, 1))  # (D_tp1, D_t)
+            _Ts = max.(0.0, T_from_BC(model, D', D, X_t))  # (D_tp1, D_t)
+            _Vs = period_penalty.(M_t, _Ts) .+ (1.0 / (1.0 + r)) .* reshape(EV_m, (:, 1))  # (D_tp1, D_t)
 
-            # Move Vs back to CPU and compute argmax for each column
-            # _Vs = Array{Float64}(_Vs_cuda)  # (D_tp1, D_t)
+            # Compute argmin for each column
             _iDstars = reshape(argmin(_Vs, dims=1), (:, 1))  # (D_tp1, D_t)
 
             # Store output in iteration arrays
             iDstar[:, iM] = getindex.(_iDstars, 1)
-            Tstar[:, iM] = D[iDstar[:, iM]] .+ X_t .- (1.0 + r)*D  # Need to add max(0, T) here
+            Tstar[:, iM] = max.(0.0, T_from_BC(model, D, D[iDstar[:, iM]], X_t))
             Vstar[:, iM] = _Vs[_iDstars]
         end
 
@@ -132,8 +143,8 @@ function find_tax_policy(
                     _iDtp1 = iDstar[iD, iM]
                     _Dtp1 = D[_iDtp1]
 
-                    _T = max(0.0, _Dtp1 + X_t - (1+r)*D_t)
-                    _V = (_T - 0.002*M_t)*(_T - 0.002*M_t) + (1.0 / (1.0 + r))*EV[_iDtp1, iM]
+                    _T = max(0.0, T_from_BC(model, D_t, _Dtp1, X_t))
+                    _V = period_penalty(M_t, _T) + (1.0 / (1.0 + r))*EV[_iDtp1, iM]
 
                     Vstar[iD, iM] = _V
                 end
@@ -208,7 +219,7 @@ function simulate_logistic_growth(;M0=1.0, Mbar=1000.0, g=0.005, σ0=0.10, σ=0.
 end
 
 
-function create_comparison_table(nMs=[500, 1000, 2500, 5000], Ts)
+function create_comparison_table(nMs, Ts)
     # Create space to store data
     out = Array{Float64}(undef, length(nMs)+1, length(Ts)*2)
 
