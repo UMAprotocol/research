@@ -34,31 +34,39 @@
   individuals who own UMA vote tokens to accurately report prices from the fiat world. In order to
   ensure that the DVM cannot be manipulated for financial gain, we must prove that it is
   economically not profitable to corrupt the system by purchasing enough tokens to corrupt the DVM
-  by voting dishonestly.
+  by voting dishonestly\footnote{There are other attacks that involve bribing voters to take a
+  particular action, but we address these concerns in a different research document}.
 
-  The tool we use to incentivize honest behavior is to tax the margin held in the financial smart
-  contracts and use this margin to conduct buybacks of the UMA vote tokens. We view these buybacks
-  as a way to ensure that there are returns paid to holding vote tokens and we prevent corruption
-  by ensuring that the expected present discounted value of all future buybacks exceeds the amount
-  that an individual could gain by corrupting the system. We build a mathematical model that
-  describes these interactions and lay out the conditions necessary to ensure that there is no
-  economically profitable corruption opportunities.
+  The tool we use to incentivize honest behavior is to conduct buybacks of the UMA vote token.  We
+  view these buybacks as a way to ensure that there are positive returns paid to holding vote tokens
+  and we prevent corruption by ensuring that the expected present discounted value of all future
+  buybacks exceeds the amount that an individual could gain by corrupting the system. These buybacks
+  are financed through a mixture of current taxes on the margin in the system and a ``rainy day
+  fund'' which is savings held from unspent margin taxes from the past. We build a mathematical
+  model that describes these interactions and lay out the conditions necessary to ensure that there
+  is no economically profitable corruption opportunities.
 
   We find that
 
   \begin{enumerate}
-    \item The executed buybacks at high levels of margin are typically higher than buybacks at lower
-          levels of margin.
-    \item The expectation of growth in margin secured by the DVM coupled with the previous finding
-          means that at low levels of margin, the system can be secured simply through the promise
-          of future buybacks. Depending on margin growth beliefs and realizations of margin growth,
-          this results in the system being secured for a significant period of time (10+ years)
-          without actually being required to implement buybacks.
-    \item Finding 2
+    \item The executed buybacks at high levels of margin are typically higher than the buybacks at
+          lower levels of margin.
+    \item The expectation of growth in the total margin secured by the DVM coupled with the fact
+          that there are higher levels of buybacks at higher levels of margin results in the system
+          being secure with low (or zero) buybacks in its early stages. Depending on margin growth
+          beliefs and actualized margin growth, this results in the system being secure for a
+          non-trivial amount of time (10+ years) without being required to implement buybacks.
+    \item When the system's ``rainy day fund'' is empty, taxes must be weakly larger than the
+          buybacks which occur for each level of margin. Additionally, for certain levels of margin
+          that have positive buybacks, the system collects more in taxes than needed so that it can
+          use those funds to finance future buybacks in states where there are higher required
+          buybacks.
     \item Finding 3
   \end{enumerate}
 
-  These findings motivate our proposed taxation structure
+  These findings motivate our proposed taxation structure which levies low taxes while the system
+  is growing and then uses a pro-cyclical tax structure with higher taxes when margin is high
+  relative to its persistent level.
 
   \clearpage
   \newpage

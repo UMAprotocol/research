@@ -83,17 +83,17 @@ Given the model parameters, we can solve this program with any standard linear p
 We can then formalize the second step with
 
 \begin{align*}
-  \min_{\{T_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t T_t^2 \right] \\
+  \min_{\{T_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t (T_t - \hat{\tau})^2 \right] \\
   &\text{subject to} \\
   T_t + (1 + r) D_t &\geq D_{t+1} + X^*_t \quad (\mu_t) \\
   D_t &\geq 0
 \end{align*}
 
-where $D_t$ denotes the amount that is currently stored in the rainy day fund. We can write this
-recursively as
+where $D_t$ denotes the amount that is currently stored in the rainy day fund and $\hat{\tau}$
+denotes a target level for our tax rate. We can write this recursively as
 
 \begin{align*}
-  V(D_t, M_t) &= \max_{T_t} \; T_t^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
+  V(D_t, M_t) &= \max_{T_t} \; (T_t - \hat{\tau})^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
   &\text{Subject to} \\
   &D_{t+1} + X_{t} \leq (1 + r) D_t + T_t \\
   &D_t \geq 0
@@ -122,6 +122,7 @@ montly scale. We set most of the parameters to our ``standard'' assumptions:
   \item $\eta = 0$: Full participation
   \item $\gamma = \frac{1}{2}$: Half of the margin is vulnerable to being stolen
   \item $r = 0.0021$: Monthly interest rate which annualizes to about 2.5\%
+  \item $\hat{\tau} = 0.00165$: A target tax-rate of 2\% of margin
 \end{itemize}
 
 The only remaining question is how to pick our Markov process for $M_t$. We use a discrete Markov
@@ -153,16 +154,36 @@ as a percent of margin
 \end{center}
 
 We now demonstrate how taxes vary by the status of the rainy day fund and the current margin using
-a heatmap. Current margin increases along the x-axis, the rainy day fund increases along the y-axis,
-and the color of the image at a point demonstrates how high taxes are at that point.
+a heatmap. Current margin increases along the y-axis, the rainy day fund increases along the x-axis,
+and the color of the image at a point demonstrates how high the annualized tax rates are at that
+point.
 
-% TODO: Add tax figure
+\begin{center}
+  \begin{figure}[H]
+    \scalebox{0.65}{\includegraphics{./TaxationPlanImages/AnnualizedTaxRates.png}}
+    \label{fig:sm_annualized_taxrates}
+  \end{figure}
+\end{center}
+
+Finally, we simluated the entire system one time for 25 years. We plot each of the series of
+interest below. We note that the tax rates are quite smooth relative to the buyback rates or the
+amount held in the rainy day fund --- We view this as an indicator that the solution to our
+mathematical program was a success.
+
+\begin{center}
+  \begin{figure}[H]
+    \scalebox{0.45}{\includegraphics{./TaxationPlanImages/SimulationPlots.png}}
+    \label{fig:sm_simulationplots}
+  \end{figure}
+\end{center}
 
 \textbf{Tax Insights}
 
 In this subsection, we discuss some of the findings associated with our numerical examples:
 
-\textit{If there are no rainy day funds, taxes will typically reflect full buyback amount}
+\vspace{0.25cm}
+
+\textit{If there are no rainy day funds, taxes must reflect at least the full buyback amount}
 
 This point follows almost immediately from the fact that we have chosen to disallow any borrowing by
 the DVM. If the rainy day fund, $D_t$, is currently at 0 then
@@ -173,8 +194,30 @@ the DVM. If the rainy day fund, $D_t$, is currently at 0 then
 \end{align*}
 
 The question is whether we will raise extra taxes to not experience the same state tomorrow. It
-turns out for most of the possible states of margin, the optimal response is to set $T_t = X_t$ with
-the result being $D_{t+1} = 0$. This means that if the rainy day fund ever arrives at 0 when there
-are positive buybacks, that it might be hard to accumulate a rainy day fund
+turns out that for the states of margin with low buybacks, that we will impose slightly higher taxes
+in order to provide some sense of stability for the times in which we will have higher buybacks.
 
-\textit{}
+\vspace{0.25cm}
+
+\textit{Rainy day funds are saved until periods when the buybacks are high}
+
+This point is aimed at exploring $\frac{\partial X^*(M_t) - T^*(D_t, M_t)}{\partial M_t}$ and
+$\frac{\partial X^*(M_t) - T^*(D_t, M_t)}{\partial D_t}$. It says, conditional on positive buybacks,
+that the change in per-period savings is decreasing in both (1) how much savings there already is
+and (2) the margin in the system.
+
+\begin{align*}
+  \frac{\partial (X^*(M_t) - T^*(D_t, M_t)) | X^*(M_t) > 0}{\partial D_t} &< 0
+  \frac{\partial (X^*(M_t) - T^*(D_t, M_t)) | X^*(M_t) > 0}{\partial M_t} &< 0
+\end{align*}
+
+\vspace{0.25cm}
+
+\textit{Imposing low, but positive, tax rates while system is growing allows relatively low tax rates once margin is stable}
+
+If we look at Figure ~\ref{fig:sm_simulationplots}, we can note that the annualized tax rates are
+approximately 2\% for the first 15 years and that during that time there are no buybacks. This
+allows the system to build up its rainy day fund to almost 50 million USD. Shortly thereafter, the
+system hits its maximum possible buyback levels which are approximately 15\% of the margin ---
+Rather than impose extra high taxes, it only raises the tax rates by 2 percentage points and uses
+the rainy day fund to fund the difference.
