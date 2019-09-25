@@ -1,11 +1,16 @@
 using Distributions
 using GLPK
+using Interpolations
 using JuMP
 using LinearAlgebra
+using Optim
 using Parameters
 using PlotlyJS
 using Random
 using QuantEcon
+
+
+const itp_type = BSpline(Quadratic(Natural(OnGrid())))
 
 
 @with_kw struct TaxModel{T<:AbstractArray}
@@ -61,10 +66,11 @@ end
 
 function period_penalty(M_t, T_t, τ_target=0.00165)
     # Compute implied tax rate
-    τ = T_t / M_t
+    τ = ifelse(M_t < 1e-8, 0.0, T_t / M_t)
 
     # If tax is below that, then 0 penalty
-    out = ifelse(τ <= τ_target, 0.0, (T_t - τ_target*M_t)^2)
+    out = (τ - τ_target)^2
+
     return out
 end
 
@@ -77,53 +83,59 @@ end
 
 function find_tax_policy(
         model::TaxModel, Xstar=constrained_dividend_payments(model);
-        nD::Int=600, tol::Float64=1e-6, maxiter::Int=10_000, n_howard_steps::Int=25
+        nD::Int=600, tol::Float64=1e-7, maxiter::Int=1_000, n_howard_steps::Int=25
     )
     # Unpack parameters
     @unpack γ, r, M = model
     nM = length(M.state_values)
 
-    # Create a savings grid. We start high and end low to ensure that argmax
-    # will choose high savings when indifferent because it picks first of
-    # the mins
-    D = range(maximum(M.state_values)/3.0, 0.0, length=nD)
+    D = range(0.0, maximum(M.state_values)/3.0, length=nD)
 
     # Allocate space for policy and value functions
-    iDstar = zeros(Int, nD, nM)  # (D_t x M_t)
+    Dstar = zeros(nD, nM)  # (D_t x M_t)
     Tstar = zeros(nD, nM)  # (D_t x M_t)
     Vstar = zeros(nD, nM)  # (D_t x M_t)
-    Vhoward = copy(Vstar)  # (D_t x M_t)
     Vold = copy(Vstar)  # (D_t x M_t)
     EV = Vold * model.M.p'  # (D_tp1 x M_t)
 
     dist, iter = 10.0, 0
     while (dist > tol) && (iter < maxiter)
 
+        @show extrema(Vstar)
+
         # Compute expected values up front (D_tp1 x M_t)
         EV .= Vold * model.M.p'
 
         # Iterate over states and find new new policies
-        Threads.@threads for iM in 1:nM
+        Threads.@threads for iM in 2:nM
             # Get M and X
             M_t = model.M.state_values[iM]
             X_t = Xstar[iM]
 
-            # Get a particular column of the EV_m matrix and store in GPU
-            EV_m = EV[:, iM]
+            # Create interpolator
+            EV_itp = extrapolate(
+                Interpolations.scale(interpolate(EV[:, iM], itp_type), D), Interpolations.Flat()
+            )
 
-            # Compute all potential Ts for each possible choice of D_tp1 using
-            # broadcasting
-            _Ts = max.(0.0, T_from_BC(model, D', D, X_t))  # (D_tp1, D_t)
-            _Vs = period_penalty.(M_t, _Ts) .+ (1.0 / (1.0 + r)) .* reshape(EV_m, (:, 1))  # (D_tp1, D_t)
+            for (iD, D_t) in enumerate(D)
+                optme(Dtp1) = (
+                    period_penalty(M_t, T_from_BC(model, D_t, Dtp1, X_t)) +
+                    (1.0 / (1.0+model.r))*EV_itp(Dtp1)
+                )
 
-            # Compute argmin for each column
-            _iDstars = reshape(argmin(_Vs, dims=1), (:, 1))  # (D_tp1, D_t)
+                opt = Optim.optimize(optme, 0.0, 1.05*D[end])
+                _Dstar = opt.minimizer
 
-            # Store output in iteration arrays
-            iDstar[:, iM] = getindex.(_iDstars, 1)
-            Tstar[:, iM] = max.(0.0, T_from_BC(model, D, D[iDstar[:, iM]], X_t))
-            Vstar[:, iM] = _Vs[_iDstars]
+                Dstar[iD, iM] = _Dstar
+                Tstar[iD, iM] = T_from_BC(model, D_t, _Dstar, X_t)
+                Vstar[iD, iM] = opt.minimum
+            end
         end
+
+        # Fill in data for the disaster state
+        Dstar[:, 1] .= 0.0
+        Tstar[:, 1] .= 0.0
+        Vstar[:, 1] .= Vstar[:, 2]
 
         # Iterate over states and apply Howard steps
         for _hstep in 1:n_howard_steps
@@ -137,15 +149,18 @@ function find_tax_policy(
                 M_t = model.M.state_values[iM]
                 X_t = Xstar[iM]
 
+                # Create interpolator
+                EV_itp = extrapolate(
+                    Interpolations.scale(interpolate(EV[:, iM], itp_type), D), Interpolations.Flat()
+                )
+
                 for (iD, D_t) in enumerate(D)
 
                     # Optimal policy
-                    _iDtp1 = iDstar[iD, iM]
-                    _Dtp1 = D[_iDtp1]
+                    _Dtp1 = Dstar[iD, iM]
 
-                    _T = max(0.0, T_from_BC(model, D_t, _Dtp1, X_t))
-                    _V = period_penalty(M_t, _T) + (1.0 / (1.0 + r))*EV[_iDtp1, iM]
-
+                    _T = T_from_BC(model, D_t, _Dtp1, X_t)
+                    _V = period_penalty(M_t, _T) + (1.0 / (1.0 + r))*EV_itp(_Dtp1)
                     Vstar[iD, iM] = _V
                 end
             end
@@ -160,7 +175,7 @@ function find_tax_policy(
         end
     end
 
-    return iDstar, Tstar, Xstar, D, Vstar
+    return Dstar, Tstar, Xstar, D, Vstar
 end
 
 
