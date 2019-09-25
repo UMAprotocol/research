@@ -179,6 +179,39 @@ function find_tax_policy(
 end
 
 
+function simulate_rainy_day(model, D, Dstar, Tstar, Xstar)
+    # Set useful vars
+    Random.seed!(42)
+    nSim = 12*25
+
+    # Simulate margin states
+    iM_sim = simulate_indices(model.M, nSim; init=2)
+    M_sim = model.M.state_values[iM_sim]
+    X_sim = Xstar[iM_sim]
+
+    # Allocate memory
+    Dstar_itp = Interpolations.scale(
+        interpolate(Dstar, (BSpline(Quadratic(Natural(OnGrid()))), NoInterp())),
+        D, 1:length(model.M.state_values)
+    )
+    D_sim = zeros(nSim)
+    T_sim = zeros(nSim)
+
+    for t in 1:nSim
+
+        D_tp1 = Dstar_itp(D_sim[t], iM_sim[t])
+        T_sim[t] = T_from_BC(model, D_sim[t], D_tp1, X_sim[t])
+
+        # Only store D_tp1 if not end of simulation
+        if t < nSim
+            D_sim[t+1] = D_tp1
+        end
+    end
+
+    return D_sim, M_sim, T_sim, X_sim
+end
+
+
 # Mtp1 = Mt + g Mt (1 - Mt/Mbar)
 function create_scurve_mc(;M0=1.0, Mbar=1000.0, g=0.005, σ0=0.15, σ=0.02, nM=499)
 
@@ -258,6 +291,7 @@ function create_comparison_table(nMs, Ts)
 end
 
 #=
+umared = "rgb(255, 74, 74)"
 
 mc = create_scurve_mc(;g=0.030, σ0=0.35, σ=0.025, nM=1500)
 model = TaxModel(0.5, 2.1e-3, mc)
@@ -294,7 +328,7 @@ annualized_buybacks = ((1.0 .+ (cdp ./ model.M.state_values)).^12 .- 1.0) .* 100
 abb_bar = [
     bar(;
         x=model.M.state_values, y=annualized_buybacks,
-        marker=attr(color="rgb(255, 74, 74)"), showlegend=false
+        marker=attr(color=umared, showlegend=false
     )
 ]
 
@@ -327,9 +361,53 @@ abb_plot = [abb_scatter_plot, abb_bar_plot]
 
 savefig(abb_plot, "../notes/TaxationPlanImages/StochasticBuybacks.png")
 
-iDstar, Tstar, Xstar, D, Vstar = find_tax_policy(
-    model, cdp; nD=500, maxiter=1, n_howard_steps=25
+Dstar, Tstar, Xstar, D, Vstar = find_tax_policy(
+    model, cdp; nD=500,
 )
+
+τstar = (1.0 .+ Tstar ./ model.M.state_values').^12 .- 1.0
+τstar[:, 1] .= 0.0
+
+τ_heat_plot = plot(
+    heatmap(;z=τstar[1:100, 501:end], x=D[1:100], y=model.M.state_values[501:end]),
+    Layout(
+        title="Annualized Tax Rates",
+        xaxis_title="Rainy Day Fund (Millions of USD)",
+        yaxis_title="Secured Margin (Millions of USD)"
+    )
+)
+savefig(τ_heat_plot, "../notes/TaxationPlanImages/AnnualizedTaxRates.png")
+
+
+D_sim, M_sim, T_sim, X_sim = simulate_rainy_day(model, D, Dstar, Tstar, Xstar)
+τ_sim = (1.0 .+ T_sim ./ M_sim).^12 .- 1.0
+bbr_sim = (1.0 .+ X_sim ./ M_sim).^12 .- 1.0
+
+nSim = length(D_sim)
+t_vals = range(0, nSim/12; length=nSim)
+
+M_sim_plot = plot(
+    scatter(;x=t_vals, y=M_sim, marker=attr(color="black"), opacity=0.35, showlegend=false),
+    Layout(;yaxis_title="Margin (Millions of USD)", autosize=false, height=300, width=500)
+);
+τ_sim_plot = plot(
+    scatter(;x=t_vals, y=τ_sim, marker=attr(color=umared), showlegend=false),
+    Layout(;yaxis_title="Annualized Tax Rates", autosize=false, height=300, width=500)
+);
+D_sim_plot = plot(
+    scatter(;x=t_vals, y=D_sim, marker=attr(color="black"), opacity=0.35, showlegend=false),
+    Layout(;yaxis_title="Rainy Day Fund (Millions of USD)", autosize=false, height=300, width=500)
+);
+bbr_sim_plot = plot(
+    scatter(;x=t_vals, y=bbr_sim, marker=attr(color="black"), opacity=0.35, showlegend=false),
+    Layout(;yaxis_title="Buyback Rates", autosize=false, height=300, width=500)
+);
+
+sim_plot = [M_sim_plot bbr_sim_plot; D_sim_plot τ_sim_plot];
+relayout!(sim_plot, Dict(:autosize=>false, :height=>600, :width=>1000))
+sim_plot
+
+savefig(sim_plot, "../notes/TaxationPlanImages/SimulationPlots.png")
 
 =#
 
