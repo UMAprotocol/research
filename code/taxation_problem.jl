@@ -1,9 +1,12 @@
+module UMATaxModel
+
 using Distributions
 using GLPK
 using Interpolations
 using JuMP
 using LinearAlgebra
 using Optim
+using ORCA
 using Parameters
 using PlotlyJS
 using Random
@@ -16,7 +19,8 @@ const itp_type = BSpline(Quadratic(Natural(OnGrid())))
 @with_kw struct TaxModel{T<:AbstractArray}
     # Parameters
     γ::Float64 = 0.5  # Fraction of margin that can be seized
-    r::Float64 = 6.5e-5  # About 2.5% annual return paid daily
+    r::Float64 = 2e-3  # About 2.5% annual return paid daily
+    τ_target::Float64=0.00165  # About 2% annula paid monthly
 
     # Margin process
     M::MarkovChain{Float64,Array{Float64,2},T} = MarkovChain([0.5 0.5; 0.5 0.5], [0.98, 1.02])
@@ -86,7 +90,7 @@ function find_tax_policy(
         nD::Int=600, tol::Float64=1e-7, maxiter::Int=1_000, n_howard_steps::Int=25
     )
     # Unpack parameters
-    @unpack γ, r, M = model
+    @unpack γ, r, τ_target, M = model
     nM = length(M.state_values)
 
     D = range(0.0, maximum(M.state_values)/3.0, length=nD)
@@ -119,7 +123,7 @@ function find_tax_policy(
 
             for (iD, D_t) in enumerate(D)
                 optme(Dtp1) = (
-                    period_penalty(M_t, T_from_BC(model, D_t, Dtp1, X_t)) +
+                    period_penalty(M_t, T_from_BC(model, D_t, Dtp1, X_t), τ_target) +
                     (1.0 / (1.0+model.r))*EV_itp(Dtp1)
                 )
 
@@ -160,7 +164,7 @@ function find_tax_policy(
                     _Dtp1 = Dstar[iD, iM]
 
                     _T = T_from_BC(model, D_t, _Dtp1, X_t)
-                    _V = period_penalty(M_t, _T) + (1.0 / (1.0 + r))*EV_itp(_Dtp1)
+                    _V = period_penalty(M_t, _T, τ_target) + (1.0 / (1.0 + r))*EV_itp(_Dtp1)
                     Vstar[iD, iM] = _V
                 end
             end
@@ -215,8 +219,9 @@ end
 # Mtp1 = Mt + g Mt (1 - Mt/Mbar)
 function create_scurve_mc(;M0=1.0, Mbar=1000.0, g=0.005, σ0=0.15, σ=0.02, nM=499)
 
-    # Create evenly spaced points between M0 and Mbar with a value at 0
-    M_values = [0.0; collect(range(M0, Mbar, length=nM))]
+    # Create evenly spaced points between M0 and (1 + 3σ)*Mbar with a value at 0
+    M_values = [0.0; collect(range(M0, (1 + 25*σ)*Mbar, length=nM))]
+
     # Create P and add absorbing disaster state
     P = zeros(nM+1, nM+1)
     P[1, 1] = 1.0
@@ -260,7 +265,7 @@ function simulate_logistic_growth(;M0=1.0, Mbar=1000.0, g=0.005, σ0=0.10, σ=0.
         # Mtp1 = Mt + g Mt (1 - Mt/Mbar)
         Mt = out[n, t-1]
         σt = σ0 + σ*Mt
-        out[n, t] = min(max(Mt + g*Mt*(1 - Mt/Mbar) + σt*randn(), M0), Mbar)
+        out[n, t] = max(Mt + g*Mt*(1 - Mt/Mbar) + σt*randn(), M0)
     end
 
     return out
@@ -290,15 +295,37 @@ function create_comparison_table(nMs, Ts)
     end
 end
 
+struct TaxModelSolution{AA<:AbstractArray}
+    Dstar::Matrix{Float64}
+    Tstar::Matrix{Float64}
+    Xstar::Vector{Float64}
+    D::AA
+    Vstar::Matrix{Float64}
+end
+
+function compute_solution(model::TaxModel)
+    # Find solution
+    Dstar, Tstar, Xstar, D, Vstar = find_tax_policy(model; tol=1e-6)
+
+    return TaxModelSolution(Dstar, Tstar, Xstar, D, Vstar)
+end
+
+end
 #=
 umared = "rgb(255, 74, 74)"
 
-mc = create_scurve_mc(;g=0.030, σ0=0.35, σ=0.025, nM=1500)
-model = TaxModel(0.5, 2.1e-3, mc)
+mc = create_scurve_mc(;g=0.030, σ0=0.35, σ=0.025, nM=1501)
+model = TaxModel(0.5, 2.1e-3, 0.00165, mc)
+
+model_high_γ = TaxModel(0.75, 2.1e-3, 1.65e-3, mc)
+model_higher_γ = TaxModel(0.9, 2.1e-3, 1.65e-3, mc)
+
+model_lowest_τtarget = TaxModel(0.5, 2.1e-3, 1.65e-5, mc)
+model_low_τtarget = TaxModel(0.5, 2.1e-3, 1.65e-4, mc)
 
 # Compute buyback policy
 cdp = constrained_dividend_payments(model)
-iDstar, Tstar, Xstar, D, Vstar = find_tax_policy(model, cdp; maxiter=1)
+# iDstar, Tstar, Xstar, D, Vstar = find_tax_policy(model, cdp; maxiter=1)
 
 # Create margin growth figure
 nsims = 150
@@ -317,18 +344,19 @@ smg_plot = plot(
     scatters,
     Layout(
         title="Margin Growth Process", xaxis_title="Years from Launch",
-        yaxis_title="Millions of Dollars"
+        yaxis_title="Millions of Dollars",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
     )
 )
 savefig(smg_plot, "../notes/TaxationPlanImages/StochasticMarginGrowth.png")
 
-mc_ind_sims = [simulate_indices(mc, 12*25; init=2) for i in 1:10]
+mc_ind_sims = [simulate_indices(mc, 12*25; init=2) for i in 1:5]
 annualized_buybacks = ((1.0 .+ (cdp ./ model.M.state_values)).^12 .- 1.0) .* 100
 
 abb_bar = [
     bar(;
         x=model.M.state_values, y=annualized_buybacks,
-        marker=attr(color=umared, showlegend=false
+        marker=attr(color=umared, showlegend=false)
     )
 ]
 
@@ -337,7 +365,7 @@ abb_scatter = [
         x=range(0, 25, length=12*25), y=annualized_buybacks[mc_ind_sims[i]],
         opacity=0.35, marker=attr(color="black"), showlegend=false
     )
-    for i in 1:10
+    for i in 1:5
 ]
 
 abb_bar_plot = plot(
@@ -345,7 +373,7 @@ abb_bar_plot = plot(
     Layout(
         title="Annualized Buyback Percents (as % of Margin)",
         xaxis_title="System Margin (millions of dollars)",
-        yaxis_range=[0, 20]
+        yaxis_range=[0, 45]
     )
 );
 
@@ -354,11 +382,18 @@ abb_scatter_plot = plot(
     Layout(
         title="Simulated Buyback Percent (as % of Margin)",
         xaxis_title="Years since launch",
-        yaxis_range=[0, 20]
+        yaxis_range=[0, 45]
     )
 );
-abb_plot = [abb_scatter_plot, abb_bar_plot]
-
+abb_plot = [abb_bar_plot, abb_scatter_plot];
+relayout!(
+    abb_plot,
+    Dict(
+        :showlegend=>false,
+        :paper_bgcolor=>"rgba(0,0,0,0)", :plot_bgcolor=>"rgba(0,0,0,0)"
+    )
+)
+abb_plot
 savefig(abb_plot, "../notes/TaxationPlanImages/StochasticBuybacks.png")
 
 Dstar, Tstar, Xstar, D, Vstar = find_tax_policy(
@@ -373,13 +408,21 @@ Dstar, Tstar, Xstar, D, Vstar = find_tax_policy(
     Layout(
         title="Annualized Tax Rates",
         xaxis_title="Rainy Day Fund (Millions of USD)",
-        yaxis_title="Secured Margin (Millions of USD)"
+        yaxis_title="Margin (Millions of USD)",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)"
     )
 )
 savefig(τ_heat_plot, "../notes/TaxationPlanImages/AnnualizedTaxRates.png")
 
-
+@unpack Dstar, Tstar, Xstar, D, Vstar = sol
 D_sim, M_sim, T_sim, X_sim = simulate_rainy_day(model, D, Dstar, Tstar, Xstar)
+
+@unpack Dstar, Tstar, Xstar, D, Vstar = sol_high_γ
+D_sim, M_sim, T_sim, X_sim = simulate_rainy_day(model_high_γ, D, Dstar, Tstar, Xstar)
+
+@unpack Dstar, Tstar, Xstar, D, Vstar = sol_lowτtarget
+D_sim, M_sim, T_sim, X_sim = simulate_rainy_day(model_low_τtarget, D, Dstar, Tstar, Xstar)
+
 τ_sim = (1.0 .+ T_sim ./ M_sim).^12 .- 1.0
 bbr_sim = (1.0 .+ X_sim ./ M_sim).^12 .- 1.0
 
@@ -392,7 +435,7 @@ M_sim_plot = plot(
 );
 τ_sim_plot = plot(
     scatter(;x=t_vals, y=τ_sim, marker=attr(color=umared), showlegend=false),
-    Layout(;yaxis_title="Annualized Tax Rates", autosize=false, height=300, width=500)
+    Layout(;yaxis_title="Annualized Tax Rates", autosize=false, yaxis_range=[0.0, 0.25], height=300, width=500)
 );
 D_sim_plot = plot(
     scatter(;x=t_vals, y=D_sim, marker=attr(color="black"), opacity=0.35, showlegend=false),
@@ -400,15 +443,20 @@ D_sim_plot = plot(
 );
 bbr_sim_plot = plot(
     scatter(;x=t_vals, y=bbr_sim, marker=attr(color="black"), opacity=0.35, showlegend=false),
-    Layout(;yaxis_title="Buyback Rates", autosize=false, height=300, width=500)
+    Layout(;yaxis_title="Buyback Rates", autosize=false, yaxis_range=[0.0, 0.25], height=300, width=500)
 );
 
 sim_plot = [M_sim_plot bbr_sim_plot; D_sim_plot τ_sim_plot];
-relayout!(sim_plot, Dict(:autosize=>false, :height=>600, :width=>1000))
+relayout!(
+    sim_plot,
+    Dict(
+        :autosize=>false, :height=>600, :width=>1000,
+        :paper_bgcolor=>"rgba(0,0,0,0)", :plot_bgcolor=>"rgba(0,0,0,0)"
+    )
+)
 sim_plot
 
 savefig(sim_plot, "../notes/TaxationPlanImages/SimulationPlots.png")
-
 =#
 
 #=
