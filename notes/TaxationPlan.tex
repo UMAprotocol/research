@@ -32,19 +32,19 @@
   The UMA Data Verification Machine (DVM) is responsible for producing ``honest'' prices that can be
   used to evaluate financial smart contracts on the blockchain. The DVM relies on votes by
   individuals who own UMA vote tokens to accurately report prices from the fiat world. In order to
-  ensure that the DVM cannot be manipulated for financial gain, we must prove that it is
-  economically not profitable to corrupt the system by purchasing enough tokens to corrupt the DVM
-  by voting dishonestly\footnote{There are other attacks that involve bribing voters to take a
+  ensure that the DVM cannot be manipulated for financial gain, we establish conditions under which
+  it is not economically profitable to corrupt the system by purchasing enough tokens to corrupt the
+  DVM by voting dishonestly\footnote{There are other attacks that involve bribing voters to take a
   particular action, but we address these concerns in a different research document}.
 
-  The tool we use to incentivize honest behavior is to conduct buybacks of the UMA vote token.  We
-  view these buybacks as a way to ensure that there are positive returns paid to holding vote tokens
-  and we prevent corruption by ensuring that the expected present discounted value of all future
-  buybacks exceeds the amount that an individual could gain by corrupting the system. These buybacks
-  are financed through a mixture of current taxes on the margin in the system and a ``rainy day
-  fund'' which is savings held from unspent margin taxes from the past. We build a mathematical
-  model that describes these interactions and lay out the conditions necessary to ensure that there
-  is no economically profitable corruption opportunities.
+  The tool we use to incentivize honest behavior is to conduct buybacks of the UMA vote token from
+  token holders.  We view these buybacks as a way to ensure that there are positive returns paid for
+  holding vote tokens. We prevent corruption by ensuring that the expected present discounted value
+  of all future buybacks exceeds the amount that an individual could gain by corrupting the system.
+  These buybacks are financed through a mixture of current taxes on the margin in the system and a
+  ``rainy day fund'' which is savings held from unspent margin taxes from the past. We build a
+  mathematical model that describes these interactions and lay out the conditions necessary to
+  ensure that there is no economically profitable corruption opportunities.
 
   We find that
 
@@ -75,20 +75,23 @@
 
   We now move on to describe the technical details of our findings.
 
-  The core of argument will revolve around what we call the ``Profit from Corruption (PfC) less than
-  Cost of Corruption (CoC)'' inequality ($PfC < CoC$). This inequality is meant to ensure that no
-  one can profitably corrupt the DVM. We assume that the PfC is proportional to the amount of margin
-  that is held in the system, $\text{PfC} = \gamma M_t$, and that the CoC is equal to buying
-  sufficient vote tokens to corrupt the system\footnote{There are other types of attacks in which
-  individuals can offer bribes to individual voters in order to incentivize them to corrupt the
-  system --- We have other work in which we can show that the cheapest attack on our system involves
-  a 51\% attack}, $\text{CoC} = \chi p_t S_t$ where $p_t$ denotes the dollar price of the UMA vote
-  tokens and $S_t$ denotes the outstanding volume of tokens. We also rely on the assumption that
-  market prices are accurate --- Namely that if $X_t$ are the dollar amounts of buybacks in each
-  period $t$ and $r$ is the interest rate, then the market cap of the token would be
-  $p_t S_t = E_t \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_t \right]$. Our
-  standard assumption will be that the amount of margin that can be stolen is $\frac{1}{2}$ and the
-  number of tokens required to corrupt is $\frac{1}{2}$.
+  The core argument will revolve around what we call the ``Profit from Corruption (PfC) less than
+  Cost of Corruption (CoC)'' inequality ($PfC < CoC$). Preserving this inequality ensures that no
+  individual can profitably corrupt the DVM.
+
+  Throughout this work, we assume that the PfC is proportional to the amount of margin that is held
+  in the system, $\text{PfC} = \gamma M_t$, and that the CoC is equal to buying sufficient vote
+  tokens to corrupt the system\footnote{There are other types of attacks in which individuals can
+  offer bribes to individual voters in order to incentivize them to corrupt the system --- We have
+  forthcoming work in which we can show that the cheapest attack on our system involves a 51\%
+  attack}, $\text{CoC} = \chi p_t S_t$ where $p_t$ denotes the dollar price of the UMA vote tokens,
+  $S_t$ denotes the outstanding volume of tokens, and $\chi$ tells us what fraction of the tokens
+  are needed to corrupt the system. We will also rely on the assumption that the market price for
+  tokens are accurate --- Namely that if $X_t$ are the dollar amounts of buybacks in each period
+  $t$ and $r$ is the risk-free interest rate, then the market cap of the token would be
+  $p_t S_t = E_t \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_t \right]$.
+  Our baseline assumption will be that the proportion of margin that can be stolen is $\frac{1}{2}$
+  and the fraction of tokens required to corrupt is $\frac{1}{2}$.
 
   In each of the following subsections, we will use the notation presented below
 
@@ -99,7 +102,7 @@
     \item $\tau_t$ denotes the tax rate on the system
     \item $p_t$ denotes the price (in dollars) of a single vote token
     \item $S_t$ denotes the number of vote tokens outstanding
-    \item $T_t \equiv \tau_t M_t$ denotes total tax levied on system
+    \item $F_t \equiv \tau_t M_t$ denotes total fee levied on system
     \item $X_t \equiv B_t p_t$ denotes the dollar value of expenditure on buybacks
   \end{itemize}
 
@@ -124,7 +127,7 @@
   \end{align*}
 
   Thus as long as the price of a token is higher than $\frac{2}{1 - \eta} \frac{\gamma M_t}{S_t}$,
-  then it is not profitable to corrupt the system.
+  then it will not be profitable to corrupt the system.
 
   The remaining analysis is done in pieces. We start with the simplest possible model and slowly
   add additional features to deepen our insights. We briefly describe these sections:
@@ -140,9 +143,9 @@
           the tax rates is similar to the rate of change of the margin held in the system. We find
           that, under a particular parameterization, we can achieve a zero tax rate for almost 20
           years before being required to increase taxes to steady state amounts.
-    \item Section \ref{sec:sm} analyzes a model in which margin follows a stationary stochastic
-          process and thinks about the right way to smooth taxes while making sure that payments
-          can be made to ensure system is incorruptible.''
+    \item Section \ref{sec:sm} analyzes a model in which margin follows a stochastic process and
+          thinks about the right way to smooth taxes while making sure that payments can be made to
+          ensure system is ``incorruptible.''
   \end{itemize}
 
   \subsection{Deterministic Steady State} \label{sec:dss}
@@ -153,6 +156,13 @@
 
   \subsection{Stochastic Markov} \label{sec:sm}
     \input{./TaxationPlanSections/SM.tex}
+
+\section{Conclusion}
+
+This document explores potential policies that allow UMA's DVM to support honest prices. It explores
+three (related) mathematical models which explore the necessary conditions for DVM corruption to be
+unprofitable for attackers. We learn that X, Y, and Z.
+
 
 \appendix
 

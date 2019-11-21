@@ -18,8 +18,8 @@ The token market cap, $p_t S_t$, will be a constant since
 
 \begin{align*}
   p_t S_t &= \frac{2}{1 - \eta} \frac{PfC_t}{S_t} S_t \\
-  &= \frac{2}{1 - \eta} PfC_t
-  &= \frac{2}{1 - \eta} \gamma M_t
+  &= \frac{2}{1 - \eta} PfC_t \\
+  &= \frac{2}{1 - \eta} \gamma M_t \\
   &= \frac{2}{1 - \eta} \gamma \bar{M}
 \end{align*}
 
@@ -29,7 +29,7 @@ Assume that we'd like to achieve an aggregate period-by-period return of $r$ to 
   (1 + r) &= \frac{p_{t+1} (S_{t+1} + B_{t+1})}{p_t S_t} \\
   (1 + r) &= \frac{p_{t+1} S_{t+1} + X_{t+1}}{p_t S_t} \\
   (1 + r) &= \frac{\frac{2}{1 - \eta} \frac{PfC_{t+1}}{S_{t+1}} S_{t+1} + X_{t+1}}{\frac{2}{1 - \eta} \frac{PfC_{t}}{S_t} S_t} \\
-  (1 + r) PfC_{t} &= PfC_{t+1} + \frac{1 - \eta}{2} X_{t+1} \\
+  (1 + r) PfC_{t} &= PfC_{t+1} + \frac{1 - \eta}{2} X_{t+1}
 \end{align*}
 
 In the SS this means that
@@ -40,11 +40,11 @@ In the SS this means that
 \end{align*}
 
 If we assume that $\bar{PfC} = \frac{1}{2} \bar{M}$ and that there is full participation then this
-reduces to $\bar{X} = r \bar{M}$ which means that the tax rate is given by,
+reduces to $\bar{X} = r \bar{M}$ which means that the fee rate is given by,
 
 $$\bar{\tau} \equiv \frac{\bar{X}}{\bar{M}} = r$$
 
-The question of how high taxes should be in the steady state depend on what one believes about the
+The question of how high fees should be in the steady state depend on what one believes about the
 return that token holders are willing to accept on their tokens.
 
 If the following three things were true,
@@ -55,5 +55,6 @@ If the following three things were true,
   \item People were confident that UMA would continue to be a core component of decentralized finance
 \end{enumerate}
 
-then it is feasible that token holders would accept interest rates near the risk-free rate --- This
-would likely translate into a required annualized tax rate of less than 5\% of margin.
+then it is feasible that token holders would accept interest rates near the risk-free rate. Under
+current market conditions, this could translate into a required annualized fee rate of between 2\%
+and 5\%, but, even in more ``investor friendly times,'' this should not exceed 5\%-10\%.

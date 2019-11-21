@@ -1,31 +1,31 @@
 %!TEX root = ../TaxationPlan.tex
 
-In the previous two models discussed there was no sense in which future margin was unknown.
-Obviously in practice, we have significant uncertainty about how margin will evolve and we believe
-it is important to incorporate this uncertainty into the model. We do this by assuming that margin
-will evolve according to a Markov process.
+In the previous two models discussed there was no uncertainty about what future margin would be.
+Obviously in practice, there is significant uncertainty about how margin will evolve and this
+uncertainty will have significant implications for token prices and other model outcomes. We add
+uncertainty to this model by assuming that margin evolves according to a stochastic Markov process.
 
-One additional difference that will show up in this section is a separation between the amount of
-taxes collected, $T_t$, and the size of the buyback, $X_t$. In the deterministic model, there were
-no unexpected fluctuations or growth and margin was either constant or always growing. These two
-features made it unnecessary to store some of the taxes collected today to pay for future buybacks.
+One additional difference we introduce in this section is a separation between the amount of fees
+collected, $F_t$, and the size of the buyback, $X_t$. In the deterministic model, there were no
+unexpected fluctuations and margin was either constant or always growing. These two features made it
+unnecessary to store some of the fees collected today as funding for future buybacks.
 
-We will assume that margin follows a Markov process, that is, that tomorrow's margin only depends on
-what margin was today.
+We assume that margin follows a Markov process, that is, that tomorrow's margin only depends on what
+margin was today.
 
 $$M_{t+1} = f(M_t, \varepsilon_{t+1})$$
 
-A Markov process like this can be quite general and can special case both of our previous sections.
-The only difference is that now, margin will begin low and then will (potentially) grow to higher
-levels with some uncertainty about the path it takes to get there.
+A Markov process like this can be quite general and special cases the margin processes in both of
+the previous sections. The only difference is that now, margin will begin low and then will
+(potentially) grow to higher levels with some uncertainty about the path it takes to get there.
 
-Our objective will be to choose $\{(X_t, T_t)\}_{t=0}^{\infty}$ to optimize certain goals. In this
-document, we will focus on minimizing the present discounted value of payouts to token holders and
-keeping tax rates at a low and consistent level\footnote{We do this by using a quadratic punishment
-function which punishes any deviation of the tax rate from 0 quadratically. The quadratic structure
-ensures that large taxes are penalized more heavily than smaller taxes --- Under certain
-assumptions, such a structure often produces a solution in which taxes tomorrow are the same as the
-taxes today in expectation}.
+Our objective will be to choose $\{X_t(M^t), F_t(M^t)\}_{t=0}^{\infty}$ to optimize certain goals.
+In this document, we will focus on minimizing the present discounted value of payouts to token
+holders and keeping fee rates at a low and consistent level\footnote{We do this by using a quadratic
+punishment function which punishes any deviation of the fee rate from 0 quadratically. The quadratic
+structure ensures that large fees are penalized more heavily than smaller fees --- Under certain
+assumptions, such a structure often produces a solution in which fees tomorrow are the same as the
+fees today in expectation}.
 
 \textbf{Two Part Solution}
 
@@ -33,7 +33,7 @@ We will approach this problem by breaking it into two parts:
 
 \begin{enumerate}
   \item Solve for the minimum cost policy function $X^*(M^t)$
-  \item Find the tax function $T^*(M^t)$ that meets our objective of low and non-volatile taxes such
+  \item Find the fee function $F^*(M^t)$ that meets our objective of low and non-volatile fees such
         that we can fund any sequence of buybacks, $\{X(M^t)\}$, without debt
 \end{enumerate}
 
@@ -47,7 +47,7 @@ discussion to Appendix \ref{app:nbb}. The constrained program can be written as
   \min_{\{X_t\}} \; & E \left[ \sum_{t} \left(\frac{1}{1 + r} \right) X_t \right] \\
   &\text{subject to} \\
   \quad & 2 PfC_t \leq E \left[ \sum_{s=0}^{\infty} \left(\frac{1}{1 + r}\right)^s X_{t+s} \right] \quad (\lambda_t) \\
-  \quad & X_t \geq 0 (\mu_t)
+  \quad & X_t \geq 0 \quad (\mu_t)
 \end{align*}
 
 If we add the restriction that the policy is Markov, $X^*(M^t) = X^*(M_t)$, then we know
@@ -83,19 +83,19 @@ Given the model parameters, we can solve this program with any standard linear p
 We can then formalize the second step with
 
 \begin{align*}
-  \min_{\{T_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t (T_t - \hat{\tau})^2 \right] \\
+  \min_{\{F_t\}} \; & E \left[ \sum_{t} \left( \frac{1}{1 + r} \right)^t (F_t - \hat{\tau})^2 \right] \\
   &\text{subject to} \\
-  T_t + (1 + r) D_t &\geq D_{t+1} + X^*_t \quad (\mu_t) \\
+  F_t + (1 + r) D_t &\geq D_{t+1} + X^*_t \quad (\mu_t) \\
   D_t &\geq 0
 \end{align*}
 
 where $D_t$ denotes the amount that is currently stored in the rainy day fund and $\hat{\tau}$
-denotes a target level for our tax rate. We can write this recursively as
+denotes a target level for our fee rate. We can write this recursively as
 
 \begin{align*}
-  V(D_t, M_t) &= \max_{T_t} \; (T_t - \hat{\tau})^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
+  V(D_t, M_t) &= \max_{F_t} \; (F_t - \hat{\tau})^2 + \frac{1}{1 + r} E [V(D_{t+1}, M_{t+1})] \\
   &\text{Subject to} \\
-  &D_{t+1} + X_{t} \leq (1 + r) D_t + T_t \\
+  &D_{t+1} + X_{t} \leq (1 + r) D_t + F_t \\
   &D_t \geq 0
 \end{align*}
 
@@ -104,7 +104,7 @@ due to no borrowing inequality constraint on the rainy day fund because it adds 
 the problem. We can still compute a solution to this recursive program using a "brute-force" style
 method called value function iteration.
 
-The output of such a solution will be a rule, $T^*(D_t, M_t)$, which expresses the tax that should
+The output of such a solution will be a rule, $T^*(D_t, M_t)$, which expresses the fee that should
 be imposed as a function of the amount currently stored in the rainy day fund and the current margin
 in the system. Additionally, this "policy function" will imply a law of motion for the size of the
 rainy day fund
@@ -115,14 +115,14 @@ In this subsection, we describe a single numerical example. This will help us in
 subsection when we discuss the insights that come out of this model.
 
 There are some issues that arise when we set too fine of a time-scale, so for now we focus on a
-montly scale. We set most of the parameters to our ``standard'' assumptions:
+monthly scale. We set most of the parameters to our ``baseline'' assumptions:
 
 \begin{itemize}
   \item $\chi = \frac{1}{2}$: Corrupted with half of the votes
   \item $\eta = 0$: Full participation
   \item $\gamma = \frac{1}{2}$: Half of the margin is vulnerable to being stolen
-  \item $r = 0.0021$: Monthly interest rate which annualizes to about 2.5\%
-  \item $\hat{\tau} = 0.00165$: A target tax-rate of 2\% of margin
+  \item $r = 0.0021$: Monthly interest risk-free rate which annualizes to about 2.5\%
+  \item $\hat{\tau} = 0.00165$: A target fee-rate of 2\% of margin
 \end{itemize}
 
 The only remaining question is how to pick our Markov process for $M_t$. We use a discrete Markov
@@ -153,9 +153,9 @@ as a percent of margin
   \end{figure}
 \end{center}
 
-We now demonstrate how taxes vary by the status of the rainy day fund and the current margin using
+We now demonstrate how fees vary by the status of the rainy day fund and the current margin using
 a heatmap. Current margin increases along the y-axis, the rainy day fund increases along the x-axis,
-and the color of the image at a point demonstrates how high the annualized tax rates are at that
+and the color of the image at a point demonstrates how high the annualized fee rates are at that
 point.
 
 \begin{center}
@@ -166,7 +166,7 @@ point.
 \end{center}
 
 Finally, we simluated the entire system one time for 25 years. We plot each of the series of
-interest below. We note that the tax rates are quite smooth relative to the buyback rates or the
+interest below. We note that the fee rates are quite smooth relative to the buyback rates or the
 amount held in the rainy day fund --- We view this as an indicator that the solution to our
 mathematical program was a success.
 
@@ -183,19 +183,19 @@ In this subsection, we discuss some of the findings associated with our numerica
 
 \vspace{0.25cm}
 
-\textit{If there are no rainy day funds, taxes must reflect at least the full buyback amount}
+\textit{If there are no rainy day funds, fees must reflect at least the full buyback amount}
 
 This point follows almost immediately from the fact that we have chosen to disallow any borrowing by
 the DVM. If the rainy day fund, $D_t$, is currently at 0 then
 
 \begin{align*}
-  D_{t+1} + X_{t} \leq (1 + r)*D_t + T_t \\
-  D_{t+1} + X_{t} \leq T_t
+  D_{t+1} + X_{t} \leq (1 + r)*D_t + F_t \\
+  D_{t+1} + X_{t} \leq F_t
 \end{align*}
 
-The question is whether we will raise extra taxes to not experience the same state tomorrow. It
-turns out that for the states of margin with low buybacks, that we will impose slightly higher taxes
-in order to provide some sense of stability for the times in which we will have higher buybacks.
+The question is whether we will raise extra fees to not experience the same state tomorrow. It
+turns out that if the margin is relatively low then we impose a slightly higher fee than needed to
+provide additional stability for times in which we will have higher buybacks.
 
 \vspace{0.25cm}
 
@@ -213,11 +213,11 @@ and (2) the margin in the system.
 
 \vspace{0.25cm}
 
-\textit{Imposing low, but positive, tax rates while system is growing allows relatively low tax rates once margin is stable}
+\textit{Imposing low, but positive, fee rates while system is growing allows relatively low fee rates once margin is stable}
 
-If we look at Figure ~\ref{fig:sm_simulationplots}, we can note that the annualized tax rates are
+If we look at Figure ~\ref{fig:sm_simulationplots}, we can note that the annualized feerates are
 approximately 2\% for the first 15 years and that during that time there are no buybacks. This
 allows the system to build up its rainy day fund to almost 50 million USD. Shortly thereafter, the
 system hits its maximum possible buyback levels which are approximately 15\% of the margin ---
-Rather than impose extra high taxes, it only raises the tax rates by 2 percentage points and uses
+Rather than impose extra high fee, it only raises the fee rates by 2 percentage points and uses
 the rainy day fund to fund the difference.
