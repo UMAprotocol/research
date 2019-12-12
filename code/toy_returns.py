@@ -188,7 +188,7 @@ def plot_margin_growth(m, nyears=40, votes_per_day=6):
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
 
-    fig.savefig("MarginGrowth.png", dpi=300)
+    fig.savefig("../notes/TaxationPlanImages/MarginGrowth.png", dpi=300, transparent=True)
 
     return fig
 
@@ -238,7 +238,7 @@ def create_market_cap_figure(m, nyears=30, votes_per_day=6, cutoff=900):
     ax.spines["top"].set_visible(False)
     ax.spines["bottom"].set_visible(False)
 
-    fig.savefig("MarketCap.png", dpi=300)
+    fig.savefig("../notes/TaxationPlanImages/MarketCap.png", dpi=300, transparent=True)
 
     return fig
 
@@ -263,7 +263,7 @@ def plot_dynamic_deterministic_tax_rates(m, nyears=40, votes_per_day=6):
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
 
-    fig.savefig("TaxRates.png", dpi=300)
+    fig.savefig("../notes/TaxationPlanImages/TaxRates.png", dpi=300, transparent=True)
 
     return None
 
