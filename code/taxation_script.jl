@@ -10,8 +10,14 @@ const umared = "rgb(255, 74, 74)"
 
 
 function create_solution(model)
-    # Check whether solution exists
+    open("./solutions/model_$(UMATaxModel.get_model_name(model))_parameters.txt", "w") do file
+        write(file, "r: $(model.r)\n")
+        write(file, "gamma: $(model.γ)\n")
+        write(file, "tau_target: $(model.τ_target)\n")
+    end
+
     fname = "./solutions/model_$(UMATaxModel.get_model_name(model)).jld"
+    # Check whether solution exists
     if isfile(fname)
         model, sol = UMATaxModel.load_solution(model)
     else
@@ -38,7 +44,7 @@ function plot_margin_process(model; nsims=250, nyears=25)
 
     # Margin simulations
     Random.seed!(61089)
-    mc_sims = [simulate(mc, 12*nyears) for i in 1:nsims]
+    mc_sims = [simulate(mc, 12*nyears; init=2) for i in 1:nsims]
 
     # Create a scatter of each margin simulation
     scatters = [
@@ -201,13 +207,13 @@ models_vary_gamma = [
 # Vary tau
 models_vary_tautarget = [
     UMATaxModel.TaxModel(0.5, 2.1e-3, _τ_target, mc)
-    for _τ_target in [1.65e-3, 1.65e-4, 3.84e-4, 1.65e-5]
+    for _τ_target in [1.65e-3, 3.84e-4, 1.65e-5]
 ]
 
 # Vary r
 models_vary_r = [
     UMATaxModel.TaxModel(0.5, _r, 1.65e-4, mc)
-    for _r in [1e-3, 2.1e-3, 4.1e-3, 8e-3]
+    for _r in [1e-3, 4.1e-3, 8e-3]
 ]
 
 all_models = vcat([baseline_model], models_vary_gamma, models_vary_tautarget, models_vary_r)

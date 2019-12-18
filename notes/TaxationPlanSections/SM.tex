@@ -2,22 +2,23 @@
 
 In the previous two models discussed there was no uncertainty about what future margin would be.
 Obviously in practice, there is significant uncertainty about how margin will evolve and this
-uncertainty will have significant implications for token prices and other model outcomes. We add
+uncertainty will have implications for token prices and other model outcomes. We add
 uncertainty to this model by assuming that margin evolves according to a stochastic Markov process.
 
 One additional difference we introduce in this section is a separation between the amount of fees
 collected, $F_t$, and the size of the buyback, $X_t$. In the deterministic model, there were no
 unexpected fluctuations and margin was either constant or always growing. These two features made it
-unnecessary to store some of the fees collected today as funding for future buybacks.
+unnecessary to store a portion of the fees collected today to fund future buybacks.
 
 We assume that margin follows a Markov process, that is, that tomorrow's margin only depends on what
 margin was today.
 
 $$M_{t+1} = f(M_t, \varepsilon_{t+1})$$
 
-A Markov process like this can be quite general and special cases the margin processes in both of
-the previous sections. The only difference is that now, margin will begin low and then will
-(potentially) grow to higher levels with some uncertainty about the path it takes to get there.
+A first order Markov process can be quite general and the margin processes from
+Section~\ref{sec:dss}  and Section~\ref{sec:dg} are special cases of the above process. The only
+difference is that now, margin will begin low and then will (potentially) grow to higher levels with
+some uncertainty about the path it takes to get there.
 
 Our objective will be to choose $\{X_t(M^t), F_t(M^t)\}_{t=0}^{\infty}$ to optimize certain goals.
 In this document, we will focus on minimizing the present discounted value of payouts to token
@@ -111,8 +112,10 @@ rainy day fund
 
 \textbf{Numerical Example}
 
-In this subsection, we describe a single numerical example. This will help us in the following
-subsection when we discuss the insights that come out of this model.
+In this subsection, we describe a single numerical example\footnote{For additional
+parameterizations, we refer you to Appendix~\ref{app:robustness} in which we display similar
+outcomes for a variety of other parameterizations}. This will help us in the following subsection
+when we discuss the insights that come out of this model.
 
 There are some issues that arise when we set too fine of a time-scale, so for now we focus on a
 monthly scale. We set most of the parameters to our ``baseline'' assumptions:
@@ -122,13 +125,13 @@ monthly scale. We set most of the parameters to our ``baseline'' assumptions:
   \item $\eta = 0$: Full participation
   \item $\gamma = \frac{1}{2}$: Half of the margin is vulnerable to being stolen
   \item $r = 0.0021$: Monthly interest risk-free rate which annualizes to about 2.5\%
-  \item $\hat{\tau} = 0.00165$: A target fee-rate of 2\% of margin
+  \item $\hat{\tau} = 0.000165$: A target fee-rate of 0.2\% of margin
 \end{itemize}
 
 The only remaining question is how to pick our Markov process for $M_t$. We use a discrete Markov
 approximation of the Logistic Growth process with some added disaster risk\footnote{When we say
-disaster risk here, we mean that there's an absorbing state with margin at 0 and there's some
-probability that the process reaches that state with positive probability}. We describe how we
+disaster risk here, we mean that there's an absorbing state with margin at 0 and there's positive
+probability that the process reaches that state from any other state}. We describe how we
 generate this approximation in Appendix \ref{app:dmc} and leave it to the interested reader to
 investigate further. We plot many possible histories of this process below to help with the
 visualization of the implied outcomes associated with this process.
@@ -148,8 +151,8 @@ as a percent of margin
 
 \begin{center}
   \begin{figure}[H]
-    \scalebox{0.65}{\includegraphics{./TaxationPlanImages/StochasticBuybacks.png}}
-    \label{fig:sm_stochastic_buybacks}
+    \scalebox{0.65}{\includegraphics{./TaxationPlanImages/AnnualizedBuybacks.png}}
+    \label{fig:sm_buybacks}
   \end{figure}
 \end{center}
 
@@ -207,7 +210,7 @@ that the change in per-period savings is decreasing in both (1) how much savings
 and (2) the margin in the system.
 
 \begin{align*}
-  \frac{\partial (X^*(M_t) - T^*(D_t, M_t)) | X^*(M_t) > 0}{\partial D_t} &< 0
+  \frac{\partial (X^*(M_t) - T^*(D_t, M_t)) | X^*(M_t) > 0}{\partial D_t} &< 0 \\
   \frac{\partial (X^*(M_t) - T^*(D_t, M_t)) | X^*(M_t) > 0}{\partial M_t} &< 0
 \end{align*}
 
@@ -216,8 +219,8 @@ and (2) the margin in the system.
 \textit{Imposing low, but positive, fee rates while system is growing allows relatively low fee rates once margin is stable}
 
 If we look at Figure ~\ref{fig:sm_simulationplots}, we can note that the annualized feerates are
-approximately 2\% for the first 15 years and that during that time there are no buybacks. This
-allows the system to build up its rainy day fund to almost 50 million USD. Shortly thereafter, the
-system hits its maximum possible buyback levels which are approximately 15\% of the margin ---
-Rather than impose extra high fee, it only raises the fee rates by 2 percentage points and uses
+approximately 0.2\% for the first 15 years and that during that time there are no buybacks. This
+allows the system to build up its rainy day fund to almost 150 million USD. Shortly thereafter, the
+system hits its maximum possible buyback levels which are approximately 10\% of the margin ---
+Rather than impose extra high fee, it only raises the fee rates by a few percentage points and uses
 the rainy day fund to fund the difference.
