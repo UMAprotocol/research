@@ -99,3 +99,9 @@ data/
 *.csv
 *.pyc
 cryptocompare_apikey.json
+
+# Don't store solutions/png files
+*.jld
+code/solutions/
+notes/TaxationPlanImages/model*/
+

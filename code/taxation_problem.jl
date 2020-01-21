@@ -3,6 +3,7 @@ module UMATaxModel
 using Distributions
 using GLPK
 using Interpolations
+using JLD
 using JuMP
 using LinearAlgebra
 using Optim
@@ -183,10 +184,10 @@ function find_tax_policy(
 end
 
 
-function simulate_rainy_day(model, D, Dstar, Tstar, Xstar)
+function simulate_rainy_day(model, D, Dstar, Tstar, Xstar; nyears=25)
     # Set useful vars
-    Random.seed!(42)
-    nSim = 12*25
+    Random.seed!(61089)
+    nSim = 12*nyears
 
     # Simulate margin states
     iM_sim = simulate_indices(model.M, nSim; init=2)
@@ -308,6 +309,68 @@ function compute_solution(model::TaxModel)
     Dstar, Tstar, Xstar, D, Vstar = find_tax_policy(model; tol=1e-6)
 
     return TaxModelSolution(Dstar, Tstar, Xstar, D, Vstar)
+end
+
+function get_model_name(model::TaxModel)
+    _thehash = hash(
+        hash(model.τ_target, hash(model.γ, hash(model.r))),
+        hash(
+            reduce(hash, hash.(model.M.state_values)),
+            reduce(hash, hash.(model.M.p))
+        )
+    )
+
+    return string(_thehash)
+end
+
+
+function save_solution(model::TaxModel, sol::TaxModelSolution)
+    fname = "./solutions/model_$(get_model_name(model)).jld"
+
+    jldopen(fname, "w") do file
+        write(file, "Dstar", sol.Dstar)
+        write(file, "Tstar", sol.Tstar)
+        write(file, "Xstar", sol.Xstar)
+        write(file, "D", sol.D)
+        write(file, "Vstar", sol.Vstar)
+
+        write(file, "params/r", model.r)
+        write(file, "params/gamma", model.γ)
+        write(file, "params/tau_target", model.τ_target)
+        write(file, "params/M_statevalues", model.M.state_values)
+        write(file, "params/M_p", model.M.p)
+    end
+
+    return 1
+end
+
+
+function load_solution(model::TaxModel)
+    fname = "./solutions/model_$(get_model_name(model)).jld"
+
+    d = load(fname)
+
+    Dstar = d["Dstar"]
+    Tstar = d["Tstar"]
+    Xstar = d["Xstar"]
+    D = d["D"]
+    Vstar = d["Vstar"]
+    sol = UMATaxModel.TaxModelSolution(Dstar, Tstar, Xstar, D, Vstar)
+
+    jldopen(fname, "r") do file
+        r = read(file, "params/r")
+        gamma = read(file, "params/gamma")
+        tau_target = read(file, "params/tau_target")
+        M_statevalues = read(file, "params/M_statevalues")
+        M_p = read(file, "params/M_p")
+        modtest = UMATaxModel.TaxModel(gamma, r, tau_target, MarkovChain(M_p, M_statevalues))
+
+        if !(get_model_name(modtest) == get_model_name(model))
+            warn("Model read in is not the same as passed in")
+        end
+    end
+
+    return model, sol
 end
 
 end

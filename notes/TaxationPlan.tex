@@ -53,15 +53,14 @@
           lower levels of margin.
     \item The expectation of growth in the total margin secured by the DVM coupled with the fact
           that there are higher levels of buybacks at higher levels of margin results in the system
-          being secure with low (or zero) buybacks in its early stages. Depending on margin growth
-          beliefs and actualized margin growth, this results in the system being secure for a
-          non-trivial amount of time (10+ years) without being required to implement buybacks.
+          being secure with low (or zero) buybacks in its early stages. Depending on beliefs about
+          margin growth and realized margin growth, this results in the system being secure for a
+          non-trivial amount of time (10+ years) without the need to implement buybacks.
     \item When the system's ``rainy day fund'' is empty, taxes must be weakly larger than the
           buybacks which occur for each level of margin. Additionally, for certain levels of margin
           that have positive buybacks, the system collects more in taxes than needed so that it can
           use those funds to finance future buybacks in states where there are higher required
           buybacks.
-    \item Finding 3
   \end{enumerate}
 
   These findings motivate our proposed taxation structure which levies low taxes while the system
@@ -144,8 +143,8 @@
           that, under a particular parameterization, we can achieve a zero tax rate for almost 20
           years before being required to increase taxes to steady state amounts.
     \item Section \ref{sec:sm} analyzes a model in which margin follows a stochastic process and
-          thinks about the right way to smooth taxes while making sure that payments can be made to
-          ensure system is ``incorruptible.''
+          thinks about the right way to smooth taxes while maintaining the ability to make payments
+          that ensure the system is ``incorruptible.''
   \end{itemize}
 
   \subsection{Deterministic Steady State} \label{sec:dss}
@@ -159,9 +158,12 @@
 
 \section{Conclusion}
 
-This document explores potential policies that allow UMA's DVM to support honest prices. It explores
-three (related) mathematical models which explore the necessary conditions for DVM corruption to be
-unprofitable for attackers. We learn that X, Y, and Z.
+This document explores potential policies that allow UMA's DVM to support honest prices.
+
+It explores three (related) mathematical models which explore the necessary conditions for DVM
+corruption to be unprofitable for attackers. We demonstrate how UMA could secure the DVM using a
+mixture of fees and token buybacks and propose a loose structure for how to implement these
+policies.
 
 
 \appendix
@@ -171,5 +173,8 @@ unprofitable for attackers. We learn that X, Y, and Z.
 
 \section{Discrete Markov Approximation to Logistic Growth} \label{app:dmc}
   \input{./TaxationPlanSections/app_dmc_approx.tex}
+
+\section{Parameterization Robustness Checks} \label{app:robustness}
+  \input{./TaxationPlanSections/app_robustness.tex}
 
 \end{document}
