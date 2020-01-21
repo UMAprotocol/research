@@ -51,7 +51,7 @@
       \item If the system is corrupted and the individual voted to corrupt, they receive
         $\tilde{x}$
       \item If the system is corrupted and the individual voted to not corrupt, they receive $0$
-      \item If the system is not corrupted and the individual voted to not corrupt, they receive
+      \item If the system is not corrupted and the individual voted to corrupt, they receive
         $1 + \tilde{x}$
       \item If the system is not corrupted and the individual voted to not corrupt, they receive
         $1 + \pi$
@@ -121,7 +121,7 @@
       \item If the system is corrupted and the individual voted to corrupt, they receive
         $\tilde{x}$
       \item If the system is corrupted and the individual voted to not corrupt, they receive $0$
-      \item If the system is not corrupted and the individual voted to not corrupt, they receive
+      \item If the system is not corrupted and the individual voted to corrupt, they receive
         $1 + \tilde{x}$
       \item If the system is not corrupted and the individual voted to not corrupt, they receive
         $1 + \frac{1}{p} \pi$
@@ -156,5 +156,16 @@
     individuals to That being said, there are additional equilibria with $p$
     close to 0.5 and they each require that $\tilde{x}$ be higher it becomes even more difficult
     to corrupt the DVM
+
+
+
+\section{Anti-bribery ``pre-game''}
+
+  To be formalized: The friction in this model is that it is tough to get people to compare the
+  relevant trade-offs because in corrupt case the system will certainly be corrupted and in the
+  non-corrupt case the system will certainly not be corrupted. The token-holders are much better
+  off in the world in which the system is not corrupted, so if we added a ``first-stage'' to this
+  game in which the token-holders determined the parameters of the system, then we could make it
+  so that the $p > 0.5$ equilibria was the one that played
 
 \end{document}
