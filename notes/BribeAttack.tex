@@ -153,7 +153,8 @@
     is a self-fulfilling prophecy.
 
     If we instead consider a trembling hand equilibrium, we introduce additional motive for
-    individuals to That being said, there are additional equilibria with $p$
+    individuals to vote correctly since they prefer the non-corrupted equilibrium unless
+    $\tilde{x}$ is very high. That being said, there are additional equilibria with $p$
     close to 0.5 and they each require that $\tilde{x}$ be higher it becomes even more difficult
     to corrupt the DVM
 
@@ -161,11 +162,22 @@
 
 \section{Anti-bribery ``pre-game''}
 
-  To be formalized: The friction in this model is that it is tough to get people to compare the
-  relevant trade-offs because in corrupt case the system will certainly be corrupted and in the
-  non-corrupt case the system will certainly not be corrupted. The token-holders are much better
-  off in the world in which the system is not corrupted, so if we added a ``first-stage'' to this
-  game in which the token-holders determined the parameters of the system, then we could make it
-  so that the $p > 0.5$ equilibria was the one that played
+  This section has yet to be formally proved and defined, however, we think the intuition is
+  useful for understanding why the system can be secured even in the face of corruptible
+  equilibria in the previously described game.
+
+  In the previous game, the ``rules'' were fixed and defined before-hand. In reality, the DVM
+  has a protocol for governance and the possibility for updating it's rules. If there were an
+  outside party that proposed a $\tilde{x}$ in order to try and convince voters to corrupt the
+  DVM, the token-holders, who in practice will prefer the non-corrupted equilibrium as long as
+  $\tilde{x}$ isn't too high\footnote{They will prefer the non-corrupt equilibrium unless the
+  proposed $\tilde{x}$ is higher than the future discounted value of all dividends... See our
+  document on how the taxation policy is determined to see why no profit-seeking individual
+  would offer a sufficiently high $\tilde{x}$}, could hold a governance vote and change the
+  ``rules of the game'' in order to protect the DVM's integrity.
+
+  Incorporating this first-stage to the game described in the first two sections would increase
+  the stability of the system and should be able to limit (or eliminate) the opportunity for
+  bribery.
 
 \end{document}
