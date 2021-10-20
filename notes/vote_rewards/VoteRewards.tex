@@ -1,0 +1,149 @@
+\item \documentclass[12pt]{article}
+
+  % Get right packages
+  \usepackage{amsmath}
+  \usepackage{amssymb}
+  \usepackage{amsthm}
+  \usepackage{float}
+  \usepackage{fullpage} % Package to use full page
+  \usepackage{graphicx}
+  \usepackage{hyperref}
+  \usepackage{parskip} % Package to tweak paragraph skipping
+
+  % User commands
+  \newtheorem{thm}{Theorem}
+  \DeclareMathOperator*{\argmax}{argmax}
+
+  % Title info
+  \title{UMA Protocol: Additional examnination of voting rewards}
+  \author{UMA Project}
+  \date{\today}
+
+\begin{document}
+
+\maketitle
+\clearpage
+\newpage
+
+
+\section{Overview}
+
+  As UMA continues to evolve, we have continued to revisit and improve many of our original processes. One of the
+  processes that we think could use an update is the voting reward procedure. This document briefly discusses the
+  current reward structure, the weaknesses of this approach, and a few alternatives to replace the current voting
+  reward structure.
+
+
+\section{Voting game}
+
+  To give some loose structure, we (briefly) describe a game that could be used to formalize some of the discussion
+  that follows later in this document.
+
+  Consider a single UMA voter who holds $u$ UMA tokens with the total supply given by $U$. This is a game that lasts $T$
+  periods. In each period there is a valid vote that should be resolved with probability $p$, but the voter can create
+  a frivolous vote at cost $c_{f}$. We could incorporate a price impact of frivolous votes as well, but we leave this
+  as work for the future. We also ignore the bribery game (which we discuss in other documents) and assume that
+  all voters reveal the state of the world accurately. We also allow for a cost of participation in a vote is $c_{p}$.
+  The number of UMA tokens that participate in a given vote is given by $0 \leq \xi \leq 1$. The voters who
+  participate are rewarded with $\gamma(u, U, \xi)$.
+
+  The voters objective is to maximize the total value of the number tokens that they have, i.e. $\max q_{T} u_{T}$ where
+  $q_{T}$ is the price of an UMA token.
+
+
+\section{Current vote reward program}
+
+  The current vote rewards system is a flat inflation rate per vote. This means that
+
+  $$\gamma(u, U, \xi) = \frac{u}{\xi U} \pi U = u \frac{\pi}{\xi}$$
+
+  It is easy to see that if $u \frac{\pi}{\xi} > c_{f} + c_{p}$ then there are incentives to call frivolous votes for
+  the sake of retrieving the rewards. This positive incentive to call frivolous votes is problematic for UMA's current
+  incentive structure because the cost of calling a frivolous vote, $c_{f}$ is relatively low which means that UMA
+  holders are economically incentivized to call meaningless votes. In practice we haven't seen much of this yet. We
+  think this is because people recognize that calling these votes would degrade the system and weaken UMA, but the
+  incentive remains and a less forward-looking party might decide to try ``pulling this lever''.
+
+  We think there are three main drawbacks to the frivolous votes:
+
+  \begin{enumerate}
+    \item \textit{Bandwidth}: If many votes are being called, it requires more bandwidth from both the UMA team and
+          from external parties. One could argue that this increased bandwidth requirement raises the probability
+          that a mistake is made, but, even if the probability of a mistake were constant, the elevated number of
+          frivolous votes raises the probability that a mistake is made simply through more opportunities to make a
+          mistake.
+    \item \textit{Inflation}: The raised vote numbers cause the system to inflate inconsistently and may also add
+          pressure to the token which weakens our security mechanisms.
+    \item \textit{Speed}: If UMA holders are encouraged to call frivolous votes then the key insights of the
+          Optimistic Oracle are weakened because nothing will be settled optimistically. The inability to settle
+          contracts optimistically will slow down our response time which makes our product less useful.
+  \end{enumerate}
+
+  In the coming sections, we propose modifications to the voting reward system to address these issues.
+
+
+\section{Raise fees}
+
+  One way that we could maintain the current reward structure is to examine, ``how high would the fees need to be in
+  order to discourage the frivolous votes''? For example, if we assume that the highest (non-UMA) token holder is 5\%
+  then that particular holder would have about 5,000,000 UMA. This means that they receive $0.05\% \times 5,000,000$
+  UMA per vote which, at current prices, would be worth about \$25,000. If we set the dispute bond above this then only
+  holders who have more than 5,000,000 UMA would be incentivized to create frivolous disputes.
+
+  This would be the easiest to implement because it only requires modifications to the parameterizations that govern
+  the Optimistic Oracle. However, it also has a high cost of maintenance because as the price of UMA fluctuates, the
+  dispute bond would need to also need to fluctuate to ensure that the frivolous voting was economically irrational.
+
+
+\section{Escalation game}
+
+  Another proposal would be to implement a type of escalation game on the vote procedure. For example, we could force
+  the people who call votes to post a bond. Another person could post a second bond of higher value to dispute whether
+  the vote needed to occur. This could then be disputed in similar fashion etc...
+
+  This does lower the incentive to call frivolous votes, but is a relatively complex system to implement. Unless a
+  terminal state were imposed, this could also be played endlessly and an individual with sufficiently deep pockets
+  could always buy their way out of a mistake.
+
+  A drawback of this approach is that it would require a large commitment from engineering and Dev-X since it would
+  involve defining the escalation game, modifying how the optimistic oracle works, and putting that logic into a new
+  set of contracts.
+
+
+\section{Time-based rewards}
+
+  A final way that we might address these frivolous votes is by decoupling rewards from the number of votes. Rather
+  than pay rewards based on a per-vote basis, we could pay rewards on a per-unit-time basis. The fact that the total
+  number of tokens rewarded per unit of time is fixed means that users have no reason to attempt to call frivolous
+  votes because it doesn't have a meaningful effect on their rewards.
+
+  An example of how this could be implemented is to starty by inflating the total number of UMA tokens by 0.25\% per
+  month which would be equivalent to 5/votes per month under the current system. UMA holders begin each month by
+  locking\footnote{This locking mechanism isn't necessary, but it provides at least 1 action per month that justifies
+  rewards being paid for acknowledging that they are ``on-call'' for the current time period. An added bonus it that we
+  could potentially remove the snapshotting requirements for the UMA token since the UMA would be locked in a separate
+  contract that already knew how much each user deposited} the UMA that they would like to use for voting in a
+  particular contract. They would then participate as usual in any votes that occur during that time period. Their share
+  of the reward would depend on the number of UMA tokens locked along with the number of times that they voted with the
+  majority.
+
+  The drawback of this approach is that it would require a larger commitment from engineering since it would involve a
+  redesign of the token and voting mechanisms.
+
+
+\section{Conclusion}
+
+  This document raises concerns about the way that voting rewards are currently earned and proposes three alternatives
+  to the current system:
+
+  \begin{enumerate}
+    \item Raise fees
+    \item Escalation game
+    \item Time-based rewards
+  \end{enumerate}
+
+  Of these options, I think the most promising is to move to a time-based reward system. This would require certain
+  changes to the UMA token but I think it most effectively addresses the underlying concerns in the most generic and
+  future-proof way.
+
+\end{document}
